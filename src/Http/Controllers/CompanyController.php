@@ -26,7 +26,7 @@ final class CompanyController extends Controller
         'bank_details' => 'Datos bancarios', 'terms' => 'Condiciones comerciales', 'footer_notes' => 'Notas al pie',
         'default_validity_days' => 'Vigencia', 'folio_prefix' => 'Prefijo', 'folio_include_year' => 'Incluir año',
         'folio_reset_yearly' => 'Reiniciar cada año', 'folio_padding' => 'Dígitos', 'folio_next' => 'Siguiente número',
-        'default_currency' => 'Moneda', 'vat_rate' => 'IVA', 'hide_costs_from_sellers' => 'Ocultar costos',
+        'default_currency' => 'Moneda', 'vat_rate' => 'IVA', 'hide_costs_from_sellers' => 'Ocultar costos', 'require_quote_approval' => 'Requiere aprobación',
     ];
 
     private const RULES = [
@@ -42,6 +42,7 @@ final class CompanyController extends Controller
         'folio_padding' => 'required|integer|between:1,8', 'folio_next' => 'required|integer|between:1,99999999',
         'default_currency' => 'required|in:MXN,USD', 'vat_rate' => 'required|numeric|between:0,100',
         'hide_costs_from_sellers' => 'required|in:0,1',
+        'require_quote_approval' => 'required|in:0,1',
     ];
 
     private const FILES = [
@@ -187,7 +188,7 @@ final class CompanyController extends Controller
             'general' => ['legal_name', 'trade_name', 'rfc', 'tax_regime', 'address', 'phone', 'email', 'website'],
             'branding' => ['logo', 'letterhead', 'color_primary', 'color_secondary', 'pdf_margin_top', 'pdf_margin_right', 'pdf_margin_bottom', 'pdf_margin_left'],
             'document' => ['bank_details', 'terms', 'footer_notes', 'default_validity_days', 'signature'],
-            'folios' => ['folio_prefix', 'folio_include_year', 'folio_reset_yearly', 'folio_padding', 'folio_next', 'default_currency', 'vat_rate', 'hide_costs_from_sellers'],
+            'folios' => ['folio_prefix', 'folio_include_year', 'folio_reset_yearly', 'folio_padding', 'folio_next', 'default_currency', 'vat_rate', 'hide_costs_from_sellers', 'require_quote_approval'],
         ];
         foreach ($map as $tab => $fields) {
             if (array_intersect($fields, array_keys($errors))) {

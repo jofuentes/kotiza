@@ -20,6 +20,9 @@
             saving: false,
             conflict: null,
             shareOpen: false,
+            noteFor: null, noteText: '',
+            refresh: { open: false, loading: false, data: null },
+            busy: false,
             shareDraft: [],
             savedJson: '',
             errors: {},
@@ -316,6 +319,65 @@
                 await this.save(true);
                 this.flash('success', `Tipo de cambio actualizado: ${data.rate} (${data.source}).`);
             },
+
+            // ---------- Flujo de estados ----------
+            async post(url, body = {}) {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrfToken() },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
+                return data;
+            },
+            async runAction(a) {
+                if (a.needs_note && this.noteFor === null) { this.noteFor = a; this.noteText = ''; return; }
+                const confirmText = { approve: '¿Aprobar esta cotización?', send: '¿Marcar como enviada al cliente? Ya no se podrá editar (podrás crear una nueva versión).',
+                    accept: '¿El cliente aceptó la cotización?', reopen: '¿Reabrir para editar? Volverá a borrador y deberá aprobarse de nuevo.' }[a.action];
+                if (confirmText && !confirm(confirmText)) return;
+                if (this.dirty && this.state.editable) await this.save(true);
+                if (this.dirty) return;
+                this.busy = true;
+                try {
+                    const data = await this.post(this.urls.state, { action: a.action, note: this.noteText });
+                    this.applyState(data.state);
+                    this.noteFor = null;
+                    this.flash('success', a.label + ': listo. Estado actual: ' + data.state.status_label + '.');
+                    setTimeout(() => location.reload(), 900); // refresca encabezado y permisos
+                } catch (e) { this.flash('error', e.message); }
+                finally { this.busy = false; }
+            },
+            async newVersion() {
+                if (!confirm('Se creará una nueva versión en borrador con el mismo folio. La actual queda en el historial. ¿Continuar?')) return;
+                try { location.href = (await this.post(this.urls.version)).url; } catch (e) { this.flash('error', e.message); }
+            },
+            async duplicateQuote() {
+                if (this.dirty && this.state.editable) await this.save(true);
+                if (!confirm('Se creará una cotización nueva (otro folio) con estas mismas partidas. ¿Continuar?')) return;
+                try { location.href = (await this.post(this.urls.duplicate)).url; } catch (e) { this.flash('error', e.message); }
+            },
+
+            // ---------- Actualizar precios ----------
+            async checkPrices() {
+                if (this.dirty) await this.save(true);
+                if (this.dirty) return;
+                this.refresh = { open: true, loading: true, data: null };
+                try { this.refresh.data = await this.post(this.urls.prices, { apply: false }); }
+                catch (e) { this.refresh.open = false; this.flash('error', e.message); }
+                finally { this.refresh.loading = false; }
+            },
+            async applyPrices() {
+                this.refresh.loading = true;
+                try {
+                    const data = await this.post(this.urls.prices, { apply: true });
+                    this.applyState(data.state);
+                    this.refresh.open = false;
+                    this.flash('success', `Precios actualizados (${data.changed} partida${data.changed === 1 ? '' : 's'} con cambios).`);
+                } catch (e) { this.flash('error', e.message); }
+                finally { this.refresh.loading = false; }
+            },
+            diffClass(a, b) { return b === null || Math.abs(b - a) < 0.005 ? '' : (b > a ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'); },
 
             // ---------- Compartir ----------
             openShare() {

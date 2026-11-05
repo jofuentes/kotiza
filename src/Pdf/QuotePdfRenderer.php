@@ -45,6 +45,12 @@ final class QuotePdfRenderer
         $background = $this->letterhead($mpdf);
         $data['background'] = $background;
 
+        $mark = \App\Domain\Quotes\QuoteWorkflow::watermark((string) $quote['status'], (bool) (int) ($c['require_quote_approval'] ?? 1));
+        if ($mark !== null) {
+            $mpdf->SetWatermarkText($mark, 0.08);
+            $mpdf->showWatermarkText = true;
+            $mpdf->watermark_font = 'dejavusanscondensed';
+        }
         $mpdf->SetHTMLFooter(View::partial('pdf/footer', $data));
         $mpdf->WriteHTML(View::partial('pdf/quote', $data));
         return $mpdf->Output('', 'S');

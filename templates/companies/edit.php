@@ -3,7 +3,7 @@ use App\Domain\TaxRegimes;
 use App\Support\Form;
 
 Form::bind($profile, $errors);
-$tabs = ['general' => 'Datos generales', 'branding' => 'Identidad visual', 'document' => 'Cotización', 'folios' => 'Folios e impuestos'];
+$tabs = ['general' => 'Datos generales', 'branding' => 'Identidad visual', 'document' => 'Cotización', 'folios' => 'Folios, impuestos y permisos'];
 $tab = isset($tabs[$tab]) ? $tab : 'general';
 $letterheadIsImage = $letterheadUrl && ($profile['letterhead_type'] ?? '') === 'image';
 ?>
@@ -155,6 +155,7 @@ $letterheadIsImage = $letterheadUrl && ($profile['letterhead_type'] ?? '') === '
             <?= Form::select('default_currency', 'Moneda por defecto', ['MXN' => 'Pesos mexicanos (MXN)', 'USD' => 'Dólares (USD)']) ?>
             <?= Form::input('vat_rate', 'Tasa de IVA (%)', 'number', ['attrs' => ['step' => '0.01', 'min' => 0, 'max' => 100, 'required' => true]]) ?>
             <?= Form::checkbox('hide_costs_from_sellers', 'Ocultar costos y utilidad a los vendedores', ['hint' => 'Los vendedores solo verán precios de venta.']) ?>
+            <?= Form::checkbox('require_quote_approval', 'Las cotizaciones requieren aprobación de un administrador', ['hint' => 'El vendedor la envía a revisión; hasta que se aprueba no puede marcarse como enviada y el PDF lleva marca de agua «BORRADOR».']) ?>
         </div>
     </div>
 

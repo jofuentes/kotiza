@@ -1,6 +1,8 @@
 <?php
 $cls = [
     'draft' => 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    'review' => 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+    'approved' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300',
     'sent' => 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300',
     'accepted' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
     'rejected' => 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',

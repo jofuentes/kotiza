@@ -62,6 +62,10 @@ return function (Router $r): void {
         $r->post('/cotizaciones/{id:\d+}/aprobar', [QuoteController::class, 'approve'], ['admin']);
         $r->get('/cotizaciones/{id:\d+}/pdf', [QuoteController::class, 'pdf']);
         $r->post('/cotizaciones/{id:\d+}/compartir', [QuoteController::class, 'share']);
+        $r->post('/cotizaciones/{id:\d+}/estado', [QuoteController::class, 'transition']);
+        $r->post('/cotizaciones/{id:\d+}/version', [QuoteController::class, 'newVersion']);
+        $r->post('/cotizaciones/{id:\d+}/duplicar', [QuoteController::class, 'duplicate']);
+        $r->post('/cotizaciones/{id:\d+}/precios', [QuoteController::class, 'refreshPrices']);
 
         // Catálogo de proveedores
         $r->get('/productos', [CatalogController::class, 'index']);

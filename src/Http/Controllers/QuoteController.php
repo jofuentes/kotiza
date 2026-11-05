@@ -10,6 +10,7 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Domain\Quotes\QuoteService;
 use App\Domain\Quotes\ConflictException;
+use App\Domain\Quotes\QuoteWorkflow;
 use App\Domain\Quotes\ValidationException;
 use App\Pdf\QuotePdfRenderer;
 use App\Pricing\ExchangeRateService;
@@ -18,9 +19,7 @@ use App\Providers\ProviderRegistry;
 
 final class QuoteController extends Controller
 {
-    public const STATUSES = [
-        'draft' => 'Borrador', 'sent' => 'Enviada', 'accepted' => 'Aceptada', 'rejected' => 'Rechazada', 'expired' => 'Vencida',
-    ];
+    public const STATUSES = QuoteWorkflow::LABELS;
 
     public function index(Request $request): Response
     {
@@ -48,6 +47,8 @@ final class QuoteController extends Controller
             $where[] = '(q.folio LIKE :q1 OR q.title LIKE :q2 OR c.name LIKE :q3 OR c.company_name LIKE :q4)';
             $params += ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like];
         }
+        // Solo la versión más reciente de cada folio (las anteriores se ven en el historial)
+        $where[] = 'NOT EXISTS (SELECT 1 FROM quotes nv WHERE nv.company_id = q.company_id AND nv.folio = q.folio AND nv.version > q.version)';
         $quotes = Database::fetchAll(
             'SELECT q.id, q.folio, q.version, q.status, q.title, q.issue_date, q.valid_until, q.currency, q.total, q.user_id,
                     q.approval_status, c.name AS client_name, c.company_name AS client_company, u.name AS user_name,
@@ -170,6 +171,54 @@ final class QuoteController extends Controller
             'Cache-Control' => 'private, no-store',
             'X-Frame-Options' => 'SAMEORIGIN',
         ]);
+    }
+
+    /** Cambio de estado: {action, note} */
+    public function transition(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        $quote = $svc->find((int) $request->params['id']);
+        try {
+            $svc->transition($quote, $request->str('action'), $request->str('note'));
+        } catch (\DomainException $e) {
+            return Response::json(['error' => $e->getMessage()], 422);
+        }
+        return Response::json(['state' => $svc->editorState($svc->find((int) $quote['id']))]);
+    }
+
+    public function newVersion(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        try {
+            $id = $svc->newVersion($svc->find((int) $request->params['id']));
+        } catch (\DomainException $e) {
+            return Response::json(['error' => $e->getMessage()], 422);
+        }
+        return Response::json(['url' => url('/cotizaciones/' . $id)]);
+    }
+
+    public function duplicate(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        $id = $svc->duplicate($svc->find((int) $request->params['id']));
+        return Response::json(['url' => url('/cotizaciones/' . $id)]);
+    }
+
+    /** Actualizar precios: {apply: false} muestra qué cambiaría; {apply: true} lo aplica */
+    public function refreshPrices(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        $quote = $svc->find((int) $request->params['id']);
+        $apply = filter_var($request->input('apply', false), FILTER_VALIDATE_BOOLEAN);
+        try {
+            $r = $svc->refreshPrices($quote, $apply);
+        } catch (\DomainException $e) {
+            return Response::json(['error' => $e->getMessage()], 422);
+        }
+        if ($apply) {
+            $r['state'] = $svc->editorState($svc->find((int) $quote['id']));
+        }
+        return Response::json($r);
     }
 
     /** Compartir con compañeros: [{user_id, permission: none|view|edit}] */

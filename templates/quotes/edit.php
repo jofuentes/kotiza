@@ -11,6 +11,10 @@ $cfg = [
         'approve' => url('/cotizaciones/' . $state['id'] . '/aprobar'),
         'pdf' => url('/cotizaciones/' . $state['id'] . '/pdf'),
         'share' => url('/cotizaciones/' . $state['id'] . '/compartir'),
+        'state' => url('/cotizaciones/' . $state['id'] . '/estado'),
+        'version' => url('/cotizaciones/' . $state['id'] . '/version'),
+        'duplicate' => url('/cotizaciones/' . $state['id'] . '/duplicar'),
+        'prices' => url('/cotizaciones/' . $state['id'] . '/precios'),
     ],
 ];
 $st = $state['status'];
@@ -48,14 +52,44 @@ $st = $state['status'];
         <span x-show="state.updated_by" x-text="' · última edición: ' + state.updated_by + ' (' + new Date(state.updated_at.replace(' ', 'T')).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) + ')'"></span>
     </p>
 
+    <!-- Flujo: acciones disponibles -->
+    <div class="mb-4 flex flex-wrap items-center gap-2" x-show="state.actions.length || state.can_new_version || true">
+        <template x-for="a in state.actions" :key="a.action">
+            <button type="button" class="btn" :disabled="busy"
+                    :class="['approve', 'send', 'accept', 'submit'].includes(a.action) ? 'btn-primary' : (['return', 'reject'].includes(a.action) ? 'btn-secondary text-red-600' : 'btn-secondary')"
+                    @click="runAction(a)" x-text="a.label"></button>
+        </template>
+        <button type="button" class="btn btn-secondary" x-show="state.can_new_version" @click="newVersion()">Nueva versión</button>
+        <button type="button" class="btn btn-secondary" @click="duplicateQuote()">Duplicar</button>
+        <span class="ml-auto text-xs text-slate-500" x-show="state.versions.length > 1">
+            Versiones:
+            <template x-for="v in state.versions" :key="v.id">
+                <a :href="'<?= e(url('/cotizaciones/')) ?>' + v.id" class="ml-1 rounded px-1.5 py-0.5"
+                   :class="v.current ? 'bg-brand text-white' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800'"
+                   :title="v.status + ' · ' + money(v.total)" x-text="'v' + v.version"></a>
+            </template>
+        </span>
+    </div>
+    <?php if ($state['status'] === 'review' && !$isAdmin): ?>
+    <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        En revisión: un administrador debe aprobarla. Mientras tanto no se puede editar (puedes retirarla de revisión).
+    </div>
+    <?php endif; ?>
+    <?php $lastReturn = array_values(array_filter($state['history'], fn ($h) => $h['action'] === 'return'))[0] ?? null; ?>
+    <?php if ($state['status'] === 'draft' && $lastReturn): ?>
+    <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+        <strong><?= e($lastReturn['user']) ?></strong> la regresó a borrador: «<?= e($lastReturn['note']) ?>»
+    </div>
+    <?php endif; ?>
+
     <?php if ($state['access'] === 'edit' || $state['access'] === 'view'): ?>
     <div class="mb-4 rounded-lg border border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-800 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200">
         <?= e($state['seller']) ?> compartió esta cotización contigo
         <?= $state['access'] === 'edit' ? 'para que puedas revisarla y modificarla.' : 'para revisión (solo lectura). Puedes ver la vista previa y descargar el PDF.' ?>
     </div>
-    <?php elseif ($state['status'] !== 'draft'): ?>
+    <?php elseif (!$state['editable'] && $state['status'] !== 'review'): ?>
     <div class="mb-4 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">
-        Esta cotización ya no es un borrador, por eso está en modo de solo lectura.
+        Cotización <?= e(mb_strtolower($state['status_label'])) ?>: ya no se edita. Para hacer cambios crea una <strong>nueva versión</strong>.
     </div>
     <?php endif; ?>
 
@@ -140,6 +174,7 @@ $st = $state['status'];
                                 </div>
                             </div>
                             <button type="button" class="btn btn-secondary" @click="addSection()">+ Sección</button>
+                            <button type="button" class="btn btn-secondary" @click="checkPrices()" x-show="state.items.some(it => it.type === 'product')" title="Consultar costos actuales en los proveedores">↻ Actualizar precios</button>
                         </div>
                     </template>
                 </div>
@@ -325,6 +360,20 @@ $st = $state['status'];
                 </div>
             </fieldset>
 
+            <div class="card p-5 text-sm">
+                <h2 class="mb-3 font-semibold">Historial</h2>
+                <ol class="space-y-3 border-l border-slate-200 pl-4 dark:border-slate-700">
+                    <template x-for="(h, i) in state.history" :key="i">
+                        <li class="relative">
+                            <span class="absolute -left-[1.3rem] top-1 h-2.5 w-2.5 rounded-full bg-brand"></span>
+                            <div class="font-medium" x-text="h.label"></div>
+                            <div class="text-xs text-slate-500" x-text="h.user + ' · ' + new Date(h.at.replace(' ', 'T')).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })"></div>
+                            <div class="mt-0.5 rounded bg-slate-100 px-2 py-1 text-xs italic dark:bg-slate-800" x-show="h.note" x-text="h.note"></div>
+                        </li>
+                    </template>
+                </ol>
+            </div>
+
             <div class="card space-y-1.5 p-5 text-sm" x-show="state.show_cost">
                 <h2 class="mb-2 font-semibold">Interno <span class="text-xs font-normal text-slate-500">(no aparece en el PDF)</span></h2>
                 <div class="flex justify-between"><span>Costo</span><span x-text="money(totals.cost)"></span></div>
@@ -334,6 +383,66 @@ $st = $state['status'];
                 <p class="text-xs text-red-600" x-show="lowMargin(totals.margin)" x-text="'Por debajo del margen mínimo (' + state.min_margin + ' %).'"></p>
             </div>
         </aside>
+    </div>
+
+    <!-- Comentario para regresar/rechazar -->
+    <div x-cloak x-show="noteFor" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @keydown.escape.window="noteFor = null">
+        <form class="card w-full max-w-md space-y-3 p-6" @submit.prevent="runAction(noteFor)">
+            <h2 class="text-lg font-semibold" x-text="noteFor?.label"></h2>
+            <textarea class="input" rows="3" x-model="noteText" required maxlength="1000"
+                      :placeholder="noteFor?.action === 'return' ? 'Qué debe corregir el vendedor…' : 'Motivo del rechazo del cliente…'"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" class="btn btn-secondary" @click="noteFor = null">Cancelar</button>
+                <button class="btn btn-primary" :disabled="busy || !noteText.trim()">Confirmar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Actualizar precios -->
+    <div x-cloak x-show="refresh.open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @keydown.escape.window="refresh.open = false">
+        <div class="card flex max-h-[90vh] w-full max-w-4xl flex-col">
+            <div class="border-b border-slate-200 p-5 dark:border-slate-800">
+                <h2 class="text-lg font-semibold">Actualizar precios desde los proveedores</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Costos y existencias actuales. Los precios capturados a mano se respetan.</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 text-sm">
+                <p x-show="refresh.loading" class="py-8 text-center text-slate-500">Consultando proveedores…</p>
+                <template x-if="refresh.data">
+                    <div class="space-y-3">
+                        <template x-for="err in refresh.data.errors" :key="err"><p class="rounded bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-950 dark:text-amber-200" x-text="err"></p></template>
+                        <table class="w-full text-left">
+                            <thead class="text-xs uppercase text-slate-500"><tr>
+                                <th class="py-1">Producto</th><th class="py-1 text-right" x-show="state.show_cost">Costo</th><th class="py-1 text-right">Precio sugerido</th><th class="py-1 text-right">Existencia</th>
+                            </tr></thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <template x-for="r in refresh.data.rows" :key="r.id">
+                                    <tr :class="r.status === 'changed' && 'bg-amber-50/50 dark:bg-amber-950/20'">
+                                        <td class="py-2"><div class="font-mono text-xs font-semibold" x-text="r.model"></div><div class="text-xs text-slate-500" x-text="r.description"></div>
+                                            <div class="text-xs font-medium" :class="{ 'text-red-600': r.status !== 'changed' && r.status !== 'same', 'text-slate-400': r.status === 'same', 'text-amber-600': r.status === 'changed' }"
+                                                 x-text="{ changed: 'Cambió', same: 'Sin cambios', unavailable: 'Ya no disponible en el proveedor', error: 'No se pudo consultar' }[r.status] + (r.manual ? ' · precio manual (se conserva)' : '')"></div>
+                                            <div class="text-xs font-semibold text-red-600" x-show="r.manual_below_cost">¡El precio manual quedó por debajo del nuevo costo!</div></td>
+                                        <td class="py-2 text-right" x-show="state.show_cost"><span class="text-slate-400 line-through" x-show="r.new_cost !== null && Math.abs(r.new_cost - r.old_cost) > 0.004" x-text="money(r.old_cost, r.currency)"></span>
+                                            <div :class="diffClass(r.old_cost, r.new_cost)" x-text="money(r.new_cost ?? r.old_cost, r.currency)"></div></td>
+                                        <td class="py-2 text-right"><span class="text-slate-400 line-through" x-show="r.new_price !== null && Math.abs(r.new_price - r.old_price) > 0.004" x-text="money(r.old_price)"></span>
+                                            <div :class="diffClass(r.old_price, r.new_price)" x-text="money(r.new_price ?? r.old_price)"></div></td>
+                                        <td class="py-2 text-right" x-text="(r.old_stock ?? '—') + (r.new_stock !== null && r.new_stock !== r.old_stock ? ' → ' + r.new_stock : '')"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                        <div class="flex justify-end gap-6 border-t border-slate-200 pt-3 text-base dark:border-slate-700">
+                            <span>Total actual: <strong x-text="money(refresh.data.before)"></strong></span>
+                            <span>Total nuevo: <strong :class="diffClass(refresh.data.before, refresh.data.after)" x-text="money(refresh.data.after)"></strong></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <div class="flex justify-end gap-2 border-t border-slate-200 p-4 dark:border-slate-800">
+                <button type="button" class="btn btn-secondary" @click="refresh.open = false">Cancelar</button>
+                <button type="button" class="btn btn-primary" :disabled="refresh.loading || !refresh.data || !refresh.data.changed" @click="applyPrices()"
+                        x-text="refresh.data && refresh.data.changed ? 'Aplicar ' + refresh.data.changed + ' cambio(s)' : 'Sin cambios que aplicar'"></button>
+            </div>
+        </div>
     </div>
 
     <!-- Compartir -->

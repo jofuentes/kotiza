@@ -33,6 +33,15 @@ try {
     exit(0);
 }
 
+// Cotizaciones aprobadas/enviadas cuya vigencia pasó → Vencida
+try {
+    if ($n = \App\Domain\Quotes\QuoteService::expireOverdue()) {
+        $log("{$n} cotización(es) marcadas como vencidas");
+    }
+} catch (\Throwable $e) {
+    $log('error al vencer cotizaciones: ' . $e->getMessage());
+}
+
 foreach ($rows as $row) {
     $class = ProviderRegistry::get($row['provider_code']);
     if (!$class || !is_subclass_of($class, SyncableProvider::class)) {
