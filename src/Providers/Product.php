@@ -35,6 +35,8 @@ final class Product
         public readonly bool $costIncludesVat = false,
         /** Clave interna del proveedor cuando difiere del modelo del fabricante (ej. clave TVC) */
         public readonly ?string $sku = null,
+        /** Precio de lista (sugerido al público) SIN IVA, en la misma moneda que el costo */
+        public readonly ?float $listPrice = null,
     ) {
     }
 
@@ -67,6 +69,7 @@ final class Product
             note: $a['note'] ?? null,
             costIncludesVat: (bool) ($a['costIncludesVat'] ?? false),
             sku: $a['sku'] ?? null,
+            listPrice: isset($a['listPrice']) ? (float) $a['listPrice'] : null,
         );
     }
 

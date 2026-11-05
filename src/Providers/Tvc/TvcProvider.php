@@ -296,6 +296,8 @@ final class TvcProvider extends AbstractProvider implements SyncableProvider
             note: $note,
             costIncludesVat: (bool) $this->setting('add_vat'),
             sku: $tvcModel !== '' && $tvcModel !== $model ? $tvcModel : null,
+            // TODO(TVC): se asume que list_price viene sin IVA
+            listPrice: isset($p['list_price']) && is_numeric($p['list_price']) && (float) $p['list_price'] > 0 ? round((float) $p['list_price'], 4) : null,
         );
     }
 

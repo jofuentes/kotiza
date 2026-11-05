@@ -298,7 +298,25 @@ final class SyscomProvider extends AbstractProvider
             warranty: isset($p['garantia']) ? (string) $p['garantia'] : null,
             note: isset($p['nota']) ? (string) $p['nota'] : null,
             costIncludesVat: (bool) $this->setting('include_vat'),
+            listPrice: $this->listPrice($p['precios'] ?? []),
         );
+    }
+
+    /**
+     * Precio de lista SIN IVA (precio sugerido al público). Si se pidió con IVA se le quita,
+     * porque la cotización suma el IVA al final.
+     */
+    private function listPrice(mixed $prices): ?float
+    {
+        $v = is_array($prices) ? ($prices['precio_lista'] ?? null) : null;
+        if (!is_numeric($v) || (float) $v <= 0) {
+            return null;
+        }
+        $list = (float) $v;
+        if ($this->setting('include_vat')) {
+            $list /= 1 + ((float) self::config()['vat_rate']) / 100;
+        }
+        return round($list, 4);
     }
 
     /** Costo según el precio configurado; null si no hay distribución del producto */

@@ -9,6 +9,7 @@ use App\Http\Controllers\CompanyContextController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\QuoteController;
@@ -58,6 +59,7 @@ return function (Router $r): void {
         $r->post('/cotizaciones/{id:\d+}/productos', [QuoteController::class, 'addProduct']);
         $r->get('/cotizaciones/{id:\d+}/tipo-cambio', [QuoteController::class, 'exchangeRate']);
         $r->post('/cotizaciones/{id:\d+}/eliminar', [QuoteController::class, 'destroy']);
+        $r->post('/cotizaciones/{id:\d+}/aprobar', [QuoteController::class, 'approve'], ['admin']);
 
         // Catálogo de proveedores
         $r->get('/productos', [CatalogController::class, 'index']);
@@ -76,6 +78,13 @@ return function (Router $r): void {
             $r->post('/usuarios', [UserController::class, 'store']);
             $r->get('/usuarios/{id:\d+}/editar', [UserController::class, 'edit']);
             $r->post('/usuarios/{id:\d+}', [UserController::class, 'update']);
+
+            $r->get('/precios', [PricingController::class, 'index']);
+            $r->post('/precios', [PricingController::class, 'updateGlobal']);
+            $r->post('/precios/reglas', [PricingController::class, 'storeRule']);
+            $r->post('/precios/reglas/{id:\d+}', [PricingController::class, 'updateRule']);
+            $r->post('/precios/reglas/{id:\d+}/eliminar', [PricingController::class, 'destroyRule']);
+            $r->get('/precios/simular', [PricingController::class, 'preview']);
 
             $r->get('/proveedores', [ProviderController::class, 'index']);
             $r->post('/proveedores/cache', [ProviderController::class, 'cache']);

@@ -101,6 +101,8 @@ final class SyscomProviderTest extends TestCase
         $this->assertNull($second->cost, 'sin distribución no hay costo');
         $this->assertSame('SOLICITAR DISTRIBUCIÓN', $second->note);
         $this->assertTrue($first->costIncludesVat);
+        $this->assertEqualsWithDelta(15.00 / 1.16, $first->listPrice, 0.0001, 'lista sin IVA cuando se pidió con IVA');
+        $this->assertNull($second->listPrice, 'sin distribución no hay lista');
     }
 
     public function testCostSettingAndOpenBox(): void
@@ -122,6 +124,7 @@ final class SyscomProviderTest extends TestCase
         $this->assertArrayNotHasKey('financiero', $q);
         $this->assertArrayNotHasKey('iva', $q);
         $this->assertFalse($prod->costIncludesVat);
+        $this->assertSame(15.0, $prod->listPrice, 'sin IVA solicitado, la lista se usa tal cual');
         $this->assertSame('usd', $q['moneda']);
     }
 

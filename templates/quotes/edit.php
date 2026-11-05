@@ -8,6 +8,7 @@ $cfg = [
         'add' => url('/cotizaciones/' . $state['id'] . '/productos'),
         'rate' => url('/cotizaciones/' . $state['id'] . '/tipo-cambio'),
         'search' => url('/productos/buscar'),
+        'approve' => url('/cotizaciones/' . $state['id'] . '/aprobar'),
     ],
 ];
 $st = $state['status'];
@@ -37,6 +38,19 @@ $st = $state['status'];
         Esta cotización ya no es un borrador, por eso está en modo de solo lectura.
     </div>
     <?php endif; ?>
+
+    <!-- Aprobación de descuentos -->
+    <div x-cloak x-show="state.approval_status === 'pending' || (needsApproval && !state.is_admin)"
+         class="mb-4 flex flex-wrap items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        <div class="flex-1">
+            <p class="font-medium" x-text="state.is_admin ? 'El vendedor aplicó descuentos mayores a su límite.' : 'Hay descuentos mayores a tu límite (' + state.max_discount + ' % adicional al sugerido): un administrador debe aprobarlos antes de enviar la cotización.'"></p>
+            <p class="mt-1 whitespace-pre-line text-xs" x-show="state.approval_note" x-text="state.approval_note"></p>
+        </div>
+        <button type="button" class="btn btn-primary" x-show="state.is_admin && state.approval_status === 'pending'" @click="approve()">Aprobar descuentos</button>
+    </div>
+    <div x-cloak x-show="state.approval_status === 'approved'" class="mb-4 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+        Descuentos aprobados por un administrador.
+    </div>
 
     <!-- Mensajes -->
     <div x-cloak x-show="message" x-transition class="fixed bottom-4 right-4 z-50 max-w-md rounded-lg px-4 py-3 text-sm shadow-lg"
@@ -178,6 +192,7 @@ $st = $state['status'];
                                                     </template>
                                                     <template x-if="it.price_manual === null || it.price_manual === ''"><span x-text="it.price_rule"></span></template>
                                                 </span>
+                                                <span class="block leading-tight text-slate-400" x-show="it.list_price" x-text="'Lista ' + money(it.list_price, it.cost_currency) + ' s/IVA'"></span>
                                             </label>
                                             <label class="text-[11px] text-slate-500">Descuento
                                                 <span class="flex">
@@ -188,6 +203,7 @@ $st = $state['status'];
                                                             title="Cambiar entre porcentaje y monto"></button>
                                                 </span>
                                                 <span class="block" x-show="line(it).discount > 0" x-text="'− ' + money(line(it).discount)"></span>
+                                                <span class="block font-semibold text-amber-600" x-show="overLimit(it)" x-text="'Excede tu límite (' + discountPct(it) + ' %)'"></span>
                                             </label>
                                             <div class="text-[11px] text-slate-500" x-show="state.show_cost">
                                                 <template x-if="it.type === 'manual'">
@@ -261,6 +277,7 @@ $st = $state['status'];
                     </div>
                 </div>
                 <div class="flex justify-between text-slate-500" x-show="totals.discount > 0"><span></span><span x-text="'− ' + money(totals.discount)"></span></div>
+                <p class="text-right text-xs font-semibold text-amber-600" x-show="globalOverLimit" x-text="'Excede tu límite de ' + state.max_discount + ' %'"></p>
                 <div class="flex items-center justify-between gap-2">
                     <span>IVA</span>
                     <div class="flex items-center gap-1"><input type="number" min="0" max="100" step="0.01" class="input w-20 px-2 py-1 text-right" x-model="state.vat_rate"><span>%</span></div>
@@ -336,6 +353,7 @@ $st = $state['status'];
                         </div>
                         <div class="flex w-32 shrink-0 flex-col items-end gap-1 text-right text-sm">
                             <div x-show="state.show_cost && p.cost !== null" class="text-xs text-slate-500" x-text="'Costo ' + money(p.cost, p.currency)"></div>
+                            <div x-show="p.listPrice" class="text-xs text-slate-500" x-text="'Lista ' + money(p.listPrice, p.currency)"></div>
                             <div x-show="p.cost === null" class="text-xs text-amber-600" x-text="p.note || 'Sin precio'"></div>
                             <div class="flex">
                                 <input type="number" min="1" step="1" class="input w-14 rounded-r-none px-1 py-1 text-right text-xs" x-model.number="qty">

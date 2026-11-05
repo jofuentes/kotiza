@@ -118,7 +118,7 @@ final class ProviderController extends Controller
         $this->repo->save(Auth::companyId(), $code, [
             'is_active' => $data['is_active'],
             'priority' => $data['priority'],
-            'default_margin' => $data['default_margin'] === '' || $data['default_margin'] === null ? null : $data['default_margin'],
+            'default_margin' => null, // el margen por proveedor ahora es una regla en Precios
             'settings' => $settings,
         ], $credentials);
 

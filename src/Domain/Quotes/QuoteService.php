@@ -9,9 +9,11 @@ use App\Core\HttpException;
 use App\Domain\FolioService;
 use App\Pricing\CurrencyConverter;
 use App\Pricing\ExchangeRateService;
-use App\Pricing\PriceCalculator;
+use App\Pricing\PriceContext;
+use App\Pricing\PriceEngine;
+use App\Pricing\PriceResult;
+use App\Pricing\PricingRule;
 use App\Providers\CatalogService;
-use App\Providers\ProviderAccountRepository;
 use App\Support\Validator;
 
 /**
@@ -97,7 +99,11 @@ final class QuoteService
         if ($p['cost'] === null) {
             throw new \DomainException('Este producto no tiene precio para tu cuenta' . ($p['note'] ? " ({$p['note']})" : '') . '. Agrégalo como partida manual si quieres cotizarlo.');
         }
-        $price = $this->suggestPrice($quote, $providerCode, (float) $p['cost'], (string) $p['currency']);
+        $price = $this->suggestPrice($quote, [
+            'provider' => $providerCode, 'model' => (string) $p['model'], 'brand' => (string) $p['brand'],
+            'category' => $p['category'] ?? null, 'cost' => (float) $p['cost'], 'currency' => (string) $p['currency'],
+            'list_price' => $p['listPrice'] ?? null,
+        ]);
         if ($sectionId !== null && !Database::value('SELECT 1 FROM quote_sections WHERE id = ? AND quote_id = ?', [$sectionId, $quote['id']])) {
             $sectionId = null;
         }
@@ -112,6 +118,7 @@ final class QuoteService
             'provider_product_id' => (string) $p['providerId'],
             'model' => mb_substr((string) $p['model'], 0, 120),
             'brand' => mb_substr((string) $p['brand'], 0, 120),
+            'category' => isset($p['category']) ? mb_substr((string) $p['category'], 0, 190) : null,
             'sku' => $p['sku'] ?? null,
             'description' => (string) $p['title'],
             'image_url' => $p['images'][0] ?? null,
@@ -123,28 +130,51 @@ final class QuoteService
             'cost_currency' => $p['currency'],
             'cost_includes_vat' => (int) ($p['costIncludesVat'] ?? false),
             'cost_fetched_at' => date('Y-m-d H:i:s', time() - (int) $r['age_minutes'] * 60),
-            'price_calculated' => $price['price'],
-            'price_rule' => $price['rule'],
+            'list_price' => $p['listPrice'] ?? null,
+            'price_calculated' => $price->price,
+            'price_rule' => mb_substr($price->label, 0, 200),
+            'rule_discount' => $price->suggestedDiscount,
+            // El descuento sugerido sobre lista se aplica como descuento visible
+            'discount_type' => 'percent',
+            'discount_value' => $price->suggestedDiscount,
         ]);
         $this->recalculate((int) $quote['id']);
+        $this->updateApproval((int) $quote['id']);
         $row = Database::fetch('SELECT * FROM quote_items WHERE id = ?', [$itemId]);
         return ['item' => $this->itemState($row, $this->find((int) $quote['id'])), 'stale' => $r['stale'], 'warning' => $r['stale'] ? $r['error'] : null];
     }
 
-    /** @return array{price: float, rule: string} */
-    private function suggestPrice(array $quote, string $providerCode, float $cost, string $costCurrency): array
+    private ?PriceEngine $engine = null;
+
+    private function engine(): PriceEngine
+    {
+        if ($this->engine === null) {
+            $rules = array_map([PricingRule::class, 'fromRow'], Database::fetchAll(
+                'SELECT * FROM pricing_rules WHERE company_id = ? AND is_active = 1 ORDER BY id', [$this->company['id']]
+            ));
+            $this->engine = new PriceEngine($rules, PricingRule::global($this->company));
+        }
+        return $this->engine;
+    }
+
+    /**
+     * Precio sugerido en la moneda de la cotización.
+     * @param array{provider:string, model:string, brand:string, category:?string, cost:float, currency:string, list_price:?float} $p
+     */
+    private function suggestPrice(array $quote, array $p): PriceResult
     {
         $rate = $quote['exchange_rate'] !== null ? (float) $quote['exchange_rate'] : null;
-        $costQ = CurrencyConverter::convert($cost, $costCurrency, $quote['currency'], $rate);
-        static $margins = [];
-        $cid = (int) $this->company['id'];
-        if (!isset($margins[$cid])) {
-            $margins[$cid] = [];
-            foreach (ProviderAccountRepository::default()->active($cid) as $acc) {
-                $margins[$cid][$acc->providerCode] = $acc->defaultMargin;
-            }
-        }
-        return PriceCalculator::suggest($costQ, $margins[$cid][$providerCode] ?? null, (float) $this->company['global_margin']);
+        $to = (string) $quote['currency'];
+        $base = (string) $this->company['default_currency'];
+        return $this->engine()->price(new PriceContext(
+            provider: $p['provider'],
+            model: $p['model'],
+            brand: $p['brand'],
+            category: $p['category'],
+            cost: CurrencyConverter::convert($p['cost'], $p['currency'], $to, $rate),
+            listPrice: $p['list_price'] !== null ? CurrencyConverter::convert((float) $p['list_price'], $p['currency'], $to, $rate) : null,
+            fromBaseCurrency: fn (float $v) => $this->convertOrKeep($v, $base, $to, $rate),
+        ));
     }
 
     // ---------- Guardar desde el editor ----------
@@ -316,9 +346,13 @@ final class QuoteService
                     if ($old['type'] === 'product') {
                         if ($currencyChanged || $rateChanged) {
                             $quoteNow = ['currency' => $newCurrency, 'exchange_rate' => $newRate] + $quote;
-                            $p = $this->suggestPrice($quoteNow, (string) $old['provider_code'], (float) $old['cost'], (string) $old['cost_currency']);
-                            $fields['price_calculated'] = $p['price'];
-                            $fields['price_rule'] = $p['rule'];
+                            $p = $this->suggestPrice($quoteNow, [
+                                'provider' => (string) $old['provider_code'], 'model' => (string) $old['model'], 'brand' => (string) $old['brand'],
+                                'category' => $old['category'], 'cost' => (float) $old['cost'], 'currency' => (string) $old['cost_currency'],
+                                'list_price' => $old['list_price'] !== null ? (float) $old['list_price'] : null,
+                            ]);
+                            $fields['price_calculated'] = $p->price;
+                            $fields['price_rule'] = mb_substr($p->label, 0, 200);
                         }
                     } else {
                         // Quien no ve costos no puede cambiarlos: se conserva el guardado
@@ -348,6 +382,88 @@ final class QuoteService
 
         $this->snapshotClient($qid);
         $this->recalculate($qid);
+        $this->updateApproval($qid);
+    }
+
+    // ---------- Límite de descuento del vendedor ----------
+
+    /** Descuento máximo (%) del dueño de la cotización; null = sin límite */
+    public function ownerMaxDiscount(array $quote): ?float
+    {
+        $m = Database::fetch('SELECT role, max_discount_pct FROM company_user WHERE company_id = ? AND user_id = ?',
+            [$quote['company_id'], $quote['user_id']]);
+        if (!$m || $m['role'] === 'admin' || $m['max_discount_pct'] === null) {
+            return null;
+        }
+        return (float) $m['max_discount_pct'];
+    }
+
+    /**
+     * Partidas/descuento global que exceden el límite del vendedor.
+     * En productos cuenta todo lo que baje el importe respecto al precio calculado
+     * (descuento o precio manual menor). El descuento sugerido por la regla es política de la
+     * empresa: el límite del vendedor se suma a él.
+     * @return string[]
+     */
+    public function discountExcess(int $quoteId, float $max): array
+    {
+        $quote = Database::fetch('SELECT * FROM quotes WHERE id = ?', [$quoteId]);
+        $out = [];
+        foreach (Database::fetchAll('SELECT * FROM quote_items WHERE quote_id = ? ORDER BY position', [$quoteId]) as $n => $it) {
+            $qty = (float) $it['qty'];
+            if ($it['type'] === 'product' && (float) $it['price_calculated'] > 0) {
+                $ref = $qty * (float) $it['price_calculated'];
+                $allowed = min(100.0, $max + (float) $it['rule_discount']);
+            } else {
+                $ref = $qty * (float) ($it['price_manual'] ?? 0);
+                $allowed = $max;
+            }
+            if ($ref <= 0) {
+                continue;
+            }
+            $effective = (1 - (float) $it['line_total'] / $ref) * 100;
+            if ($effective > $allowed + 0.01) {
+                $out[] = sprintf('Partida %d (%s): %s de descuento (máx. %s)', $n + 1,
+                    mb_strimwidth($it['model'] ?: $it['description'], 0, 40, '…'), PriceEngine::pct(round($effective, 2)), PriceEngine::pct($allowed));
+            }
+        }
+        if ((float) $quote['subtotal'] > 0) {
+            $g = (float) $quote['discount_total'] / (float) $quote['subtotal'] * 100;
+            if ($g > $max + 0.01) {
+                $out[] = sprintf('Descuento global: %s (máx. %s)', PriceEngine::pct(round($g, 2)), PriceEngine::pct($max));
+            }
+        }
+        return $out;
+    }
+
+    /** Recalcula si la cotización requiere aprobación de un administrador */
+    public function updateApproval(int $quoteId): void
+    {
+        $quote = Database::fetch('SELECT * FROM quotes WHERE id = ?', [$quoteId]);
+        $max = $this->ownerMaxDiscount($quote);
+        $excess = $max === null ? [] : $this->discountExcess($quoteId, $max);
+        if (!$excess) {
+            $status = 'none';
+        } elseif (Auth::isAdmin()) {
+            // Si un administrador guarda, los descuentos quedan aprobados por él
+            $status = 'approved';
+        } else {
+            $status = 'pending';
+        }
+        Database::query(
+            "UPDATE quotes SET approval_status = ?, approval_note = ?,
+                    approved_by = IF(? = 'approved', ?, NULL), approved_at = IF(? = 'approved', NOW(), NULL) WHERE id = ?",
+            [$status, $excess ? mb_substr(implode("\n", $excess), 0, 500) : null, $status, Auth::id(), $status, $quoteId]
+        );
+    }
+
+    public function approve(array $quote): void
+    {
+        if (!Auth::isAdmin()) {
+            throw new \DomainException('Solo un administrador puede aprobar descuentos.');
+        }
+        Database::query("UPDATE quotes SET approval_status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?",
+            [Auth::id(), $quote['id']]);
     }
 
     private function needsRate(array $items, string $currency): bool
@@ -445,6 +561,10 @@ final class QuoteService
             'items' => array_map(fn ($r) => $this->itemState($r, $quote), $rows),
             'show_cost' => $this->canSeeCost(),
             'min_margin' => (float) $this->company['min_margin'],
+            'max_discount' => $this->ownerMaxDiscount($quote),
+            'is_admin' => Auth::isAdmin(),
+            'approval_status' => $quote['approval_status'],
+            'approval_note' => (string) $quote['approval_note'],
             'updated_at' => $quote['updated_at'],
         ];
     }
@@ -471,6 +591,8 @@ final class QuoteService
             'price_calculated' => $r['price_calculated'] !== null ? (float) $r['price_calculated'] : null,
             'price_manual' => $r['price_manual'] !== null ? (float) $r['price_manual'] : null,
             'price_rule' => $r['price_rule'],
+            'rule_discount' => (float) $r['rule_discount'],
+            'list_price' => $r['list_price'] !== null ? (float) $r['list_price'] : null,
             'discount_type' => $r['discount_type'],
             'discount_value' => (float) $r['discount_value'],
             'notes' => (string) $r['notes'],

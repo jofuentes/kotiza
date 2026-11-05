@@ -62,7 +62,10 @@ $settings = $old['settings'] ?? [];
             <h2 class="font-semibold sm:col-span-3">General</h2>
             <?= Form::select('is_active', 'Estado', ['1' => 'Activo', '0' => 'Inactivo']) ?>
             <?= Form::input('priority', 'Prioridad', 'number', ['attrs' => ['min' => 1, 'max' => 99], 'hint' => '1 = se muestra primero.']) ?>
-            <?= Form::input('default_margin', 'Margen por defecto (%)', 'number', ['attrs' => ['step' => '0.01', 'min' => 0], 'hint' => 'Vacío = margen global.']) ?>
+            <div class="text-sm">
+                <span class="label">Precio de venta</span>
+                <p class="text-slate-500 dark:text-slate-400">Se configura en <a href="<?= e(url('/precios')) ?>" class="text-brand underline dark:text-sky-400">Precios</a> (regla por proveedor).</p>
+            </div>
         </div>
 
         <?php if ($settingFields): ?>

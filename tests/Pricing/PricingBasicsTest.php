@@ -5,7 +5,6 @@ namespace Tests\Pricing;
 
 use App\Pricing\CurrencyConverter;
 use App\Pricing\ExchangeRateService;
-use App\Pricing\PriceCalculator;
 use PHPUnit\Framework\TestCase;
 
 final class PricingBasicsTest extends TestCase
@@ -21,12 +20,6 @@ final class PricingBasicsTest extends TestCase
     {
         $this->expectException(\DomainException::class);
         CurrencyConverter::convert(1, 'USD', 'MXN', null);
-    }
-
-    public function testSuggestUsesProviderMarginFirst(): void
-    {
-        $this->assertSame(['price' => 1300.0, 'rule' => 'Margen del proveedor 30 %'], PriceCalculator::suggest(1000, 30, 25));
-        $this->assertSame(['price' => 1255.0, 'rule' => 'Margen global 25.5 %'], PriceCalculator::suggest(1000, null, 25.5));
     }
 
     public function testExchangeBuffer(): void

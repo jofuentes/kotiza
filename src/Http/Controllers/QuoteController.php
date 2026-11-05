@@ -129,6 +129,14 @@ final class QuoteController extends Controller
         return Response::json(ExchangeRateService::current(Auth::company()));
     }
 
+    public function approve(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        $quote = $svc->find((int) $request->params['id']);
+        $svc->approve($quote);
+        return Response::json(['state' => $svc->editorState($svc->find((int) $quote['id']))]);
+    }
+
     public function destroy(Request $request): Response
     {
         $svc = QuoteService::forCurrentCompany();

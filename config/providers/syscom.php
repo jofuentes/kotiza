@@ -16,4 +16,6 @@ return [
     ],
     'max_ids_per_request' => 300,
     'page_size' => 60,
+    // IVA con el que Syscom devuelve precios cuando se pide iva=true (para obtener el precio de lista sin IVA)
+    'vat_rate' => 16,
 ];

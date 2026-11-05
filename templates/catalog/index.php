@@ -88,6 +88,7 @@
                                 <div class="text-xs text-slate-500" x-text="p.costIncludesVat ? 'Costo (IVA incl.)' : 'Costo (sin IVA)'"></div>
                                 <div class="font-semibold" x-text="p.cost !== null ? money(p.cost, p.currency) : '—'"></div>
                             </div>
+                            <div class="mt-1 text-xs text-slate-500" x-show="p.listPrice" x-text="'Lista ' + money(p.listPrice, p.currency) + ' s/IVA'"></div>
                             <div class="mt-1 text-xs" :class="p.stock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'"
                                  :title="Object.entries(p.stockByWarehouse || {}).map(([w, n]) => `${w}: ${n}`).join('\n')"
                                  x-text="p.stock > 0 ? `${p.stock} en existencia` : 'Sin existencia'"></div>

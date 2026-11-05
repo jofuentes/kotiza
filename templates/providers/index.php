@@ -23,7 +23,6 @@
         <?php if ($row): ?>
         <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             <dt class="text-slate-500 dark:text-slate-400">Prioridad</dt><dd><?= (int) $row['priority'] ?></dd>
-            <dt class="text-slate-500 dark:text-slate-400">Margen por defecto</dt><dd><?= $row['default_margin'] !== null ? e((float) $row['default_margin']) . ' %' : 'El global de la empresa' ?></dd>
             <dt class="text-slate-500 dark:text-slate-400">Última prueba</dt>
             <dd x-ref="last">
                 <?php if ($row['last_test_at']): ?>

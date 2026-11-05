@@ -125,6 +125,33 @@
                 return { subtotal, discount: gd, taxable, tax, total: r2(taxable + tax), cost: r2(costTotal), costKnown, profit, margin };
             },
             lowMargin(m) { return m !== null && m < this.state.min_margin; },
+
+            // Límite de descuento del vendedor (null = sin límite)
+            discountPct(it) {
+                const qty = Math.max(0, num(it.qty)), total = this.line(it).total;
+                const ref = it.type === 'product' && num(it.price_calculated) > 0 ? qty * num(it.price_calculated) : qty * this.unitPrice(it);
+                return ref > 0 ? Math.round((1 - total / ref) * 10000) / 100 : 0;
+            },
+            overLimit(it) {
+                if (this.state.max_discount === null || this.state.max_discount === undefined) return false;
+                // El descuento sugerido por la regla es política de la empresa; el límite del vendedor se suma
+                const allowed = Math.min(100, this.state.max_discount + (it.type === 'product' ? num(it.rule_discount) : 0));
+                return this.discountPct(it) > allowed + 0.01;
+            },
+            get globalOverLimit() {
+                if (this.state.max_discount === null || this.state.max_discount === undefined) return false;
+                const t = this.totals;
+                return t.subtotal > 0 && (t.discount / t.subtotal * 100) > this.state.max_discount + 0.01;
+            },
+            get needsApproval() { return this.globalOverLimit || this.state.items.some(it => this.overLimit(it)); },
+            async approve() {
+                if (this.dirty) await this.save(true);
+                const res = await fetch(this.urls.approve, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-Token': csrfToken() } });
+                const data = await res.json();
+                if (!res.ok) { this.flash('error', data.error || 'No se pudo aprobar.'); return; }
+                this.applyState(data.state);
+                this.flash('success', 'Descuentos aprobados.');
+            },
             money(v, cur) {
                 if (v === null || v === undefined || v === '') return '—';
                 return new Intl.NumberFormat('es-MX', { style: 'currency', currency: cur || this.state.currency }).format(v);

@@ -72,6 +72,7 @@ final class TvcProviderTest extends TestCase
         $this->assertSame('BOSCH A_APCAMC24WCF- AMC2 MODULO DE CONTROL DE ACCESO DE 1 A 4 PUERTAS / INTERFAZ WIEGAND / 8 ENTRADAS / 8 SALIDAS', $a->title);
         $this->assertEqualsWithDelta(24.67 * 1.16, $a->cost, 0.0001, 'precio distribuidor + IVA por defecto');
         $this->assertTrue($a->costIncludesVat);
+        $this->assertSame(47.65, $a->listPrice);
         $this->assertSame('USD', $a->currency);
         $this->assertSame(500, $a->stock);
         $this->assertSame(['https://cdn.tvc.mx/media/3168/AMC2.jpg', 'https://cdn.tvc.mx/media/3172/AMC2-diagram.jpg'], $a->images);
