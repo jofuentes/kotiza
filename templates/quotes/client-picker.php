@@ -30,22 +30,24 @@
 
     <!-- Alta rápida -->
     <div x-cloak x-show="creating" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @keydown.escape.window="creating = false">
-        <form class="card w-full max-w-lg space-y-3 p-6" @submit.prevent="create(c => { <?= $pickerModel ?> = c })" @click.outside="creating = false">
+        <!-- Sin <form>: este selector vive dentro de otros formularios y HTML no permite anidarlos -->
+        <div class="card w-full max-w-lg space-y-3 p-6" @keydown.enter.prevent="create(c => { <?= $pickerModel ?> = c })" @click.outside="creating = false">
             <h2 class="text-lg font-semibold">Nuevo cliente</h2>
             <div class="grid gap-3 sm:grid-cols-2">
                 <template x-for="f in fields" :key="f.k">
                     <div :class="f.wide && 'sm:col-span-2'">
                         <label class="label" x-text="f.label"></label>
-                        <input class="input" :type="f.type || 'text'" x-model="form[f.k]" :required="f.required" :class="errors[f.k] && 'input-error'">
+                        <!-- Sin required: estos campos ocultos quedan dentro del formulario de la página y bloquearían su envío -->
+                        <input class="input" :type="f.type === 'email' ? 'text' : (f.type || 'text')" :inputmode="f.type === 'email' ? 'email' : null" x-model="form[f.k]" :class="errors[f.k] && 'input-error'">
                         <p class="field-error" x-show="errors[f.k]" x-text="errors[f.k]"></p>
                     </div>
                 </template>
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" class="btn btn-secondary" @click="creating = false">Cancelar</button>
-                <button class="btn btn-primary" :disabled="saving">Crear cliente</button>
+                <button type="button" class="btn btn-primary" :disabled="saving" @click="create(c => { <?= $pickerModel ?> = c })">Crear cliente</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 <?php if (empty($GLOBALS['__clientPickerJs'])): $GLOBALS['__clientPickerJs'] = true; ?>
@@ -68,6 +70,7 @@ function clientPicker() {
         },
         openNew() { this.form = { name: this.q }; this.errors = {}; this.creating = true; this.open = false; },
         async create(done) {
+            if (!(this.form.name || '').trim()) { this.errors = { name: 'El nombre es obligatorio.' }; return; }
             this.saving = true; this.errors = {};
             const body = new URLSearchParams(Object.assign({ _csrf: csrfToken() }, this.form));
             try {
