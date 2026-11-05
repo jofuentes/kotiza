@@ -1,0 +1,18 @@
+{
+  "producto_id": "215182",
+  "modelo": "DS-2FA1205-C8/K",
+  "total_existencia": 37,
+  "titulo": "Fuente de Poder Regulada 12 Vcc",
+  "marca": "HIKVISION",
+  "garantia": "5 años",
+  "sat_key": "39121004",
+  "img_portada": "https://ftp3.syscom.mx/a.jpg",
+  "categorias": [ { "id": "22", "nombre": "Videovigilancia", "nivel": 1 } ],
+  "link": "/producto/x.html",
+  "descripcion": "<div onclick=\"x()\"><p>Fuente <b>regulada</b></p><script>alert(1)</script></div>",
+  "unidad_de_medida": { "codigo_unidad": "1", "nombre": "Pieza", "clave_unidad_sat": "H87" },
+  "precios": { "precio_especial": "10.20", "precio_lista": "15.00" },
+  "existencia": { "nuevo": 37, "detalle": { "nuevo": { "mexico": 37 } } },
+  "caracteristicas": [ "Protección contra sobrecarga" ],
+  "imagenes": [ { "imagen": "https://ftp3.syscom.mx/a.jpg", "orden": "0" }, { "imagen": "https://ftp3.syscom.mx/b.jpg", "orden": "1" } ]
+}

@@ -50,12 +50,13 @@ final class Request
         return array_merge($this->query, $this->body);
     }
 
+    /** Campos de formulario como texto recortado; los ausentes o no escalares llegan como '' */
     public function only(array $keys): array
     {
         $out = [];
         foreach ($keys as $k) {
             $v = $this->input($k);
-            $out[$k] = is_string($v) ? trim($v) : $v;
+            $out[$k] = is_scalar($v) ? trim((string) $v) : '';
         }
         return $out;
     }

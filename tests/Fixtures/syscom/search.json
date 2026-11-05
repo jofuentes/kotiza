@@ -1,0 +1,56 @@
+{
+  "cantidad": 2,
+  "pagina": 1,
+  "paginas": 1,
+  "todo": false,
+  "productos": [
+    {
+      "producto_id": "215182",
+      "modelo": "DS-2FA1205-C8/K",
+      "total_existencia": 37,
+      "total_existencias_caja_abierta": 2,
+      "titulo": "Fuente de Poder Regulada 12 Vcc &amp; 5 A",
+      "marca": "HIKVISION",
+      "garantia": "5 años",
+      "sat_key": "39121004",
+      "sat_description": "Unidades de suministro de energia",
+      "img_portada": "https://ftp3.syscom.mx/usuarios/fotos/BancoFotografiasSyscom/DS2FA1205C8K.JPG",
+      "link_privado": "https://www.productos-info.com/s/syscom/es/x",
+      "categorias": [
+        { "id": "22", "nombre": "Videovigilancia", "nivel": 1 },
+        { "id": "220", "nombre": "Fuentes de poder", "nivel": 2 }
+      ],
+      "pvol": "0",
+      "link": "/producto/DS-2FA1205-C8-K-HIKVISION-215182.html",
+      "iconos": [],
+      "unidad_de_medida": { "codigo_unidad": "1", "nombre": "Pieza", "clave_unidad_sat": "H87" },
+      "caracteristicas": [ "Protección contra sobrecarga" ],
+      "precios": {
+        "precio_1": "12.50",
+        "precio_especial": "10.20",
+        "precio_descuento": "9.80",
+        "volumen": { "10": "9.50" },
+        "precio_map": "14.00",
+        "precio_lista": "15.00"
+      },
+      "existencia": {
+        "nuevo": 37,
+        "asterisco": { "a": 2, "b": 0, "c": 0, "d": 0 },
+        "detalle": { "nuevo": { "guadalajara": 12, "mexico": 25, "monterrey": 0 } }
+      }
+    },
+    {
+      "producto_id": "210627",
+      "modelo": "DS-KIS604-P(C)",
+      "total_existencia": 0,
+      "total_existencias_caja_abierta": 0,
+      "titulo": "Kit de Videoportero IP PoE",
+      "marca": "HIKVISION",
+      "categorias": [ { "id": "37", "nombre": "Control de Acceso", "nivel": 1 } ],
+      "unidad_de_medida": { "codigo_unidad": "1", "nombre": "Pieza", "clave_unidad_sat": "H87" },
+      "precios": [],
+      "nota": "SOLICITAR DISTRIBUCIÓN",
+      "existencia": { "nuevo": 0, "asterisco": { "a": 0, "b": 0, "c": 0, "d": 0 }, "detalle": [] }
+    }
+  ]
+}

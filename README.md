@@ -41,3 +41,23 @@ docker run --rm -v "$PWD":/app -w /app php:8.3-cli vendor/bin/phpunit
 | `templates` | Vistas (PHP con escape `e()`) |
 | `database/migrations` | Migraciones SQL versionadas |
 | `storage` | Logos, membretes, PDFs, sesiones (volumen persistente) |
+
+## Proveedores
+
+Cada empresa captura sus propias credenciales en **Proveedores** (solo administradores). Se guardan cifradas con la `APP_KEY` y nunca se vuelven a mostrar. «Probar conexión» valida las credenciales y «Ver log» muestra cada llamada (endpoint, código HTTP, tiempo).
+
+**Syscom:** genera `client_id` y `client_secret` en https://developers.syscom.mx/clients. El token dura un año y se renueva solo.
+
+### Cómo agregar un proveedor nuevo
+
+1. Crea `config/providers/miproveedor.php` con URLs y endpoints.
+2. Crea `src/Providers/MiProveedor/MiProveedorProvider.php` extendiendo `App\Providers\AbstractProvider`:
+   - `code()`, `name()`, `description()`
+   - `credentialFields()` y `settingFields()` (se dibujan solos en la UI)
+   - `requestToken()` si usa token Bearer (la caché y la renovación ante 401 ya están resueltas)
+   - `testConnection()`, `searchAsync()`, `getPrices()` (y `getProduct()`, `getExchangeRate()`… si aplica)
+   - Un método que convierta cada producto de su API a `App\Providers\Product`
+3. Usa `$this->getJsonAsync($url, $query)`: ya incluye reintentos con backoff, respeto de `Retry-After`, log de llamadas y mensajes de error en español.
+4. Agrega pruebas en `tests/Providers/` con respuestas simuladas (`GuzzleHttp\Handler\MockHandler`) y fixtures en `tests/Fixtures/miproveedor/`.
+
+El `ProviderRegistry` lo descubre automáticamente: aparece en **Proveedores** sin tocar nada más.

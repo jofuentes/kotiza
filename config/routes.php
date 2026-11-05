@@ -3,11 +3,13 @@ declare(strict_types=1);
 
 use App\Core\Router;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CompanyContextController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\UserController;
 
@@ -36,6 +38,11 @@ return function (Router $r): void {
         $r->get('/perfil', [ProfileController::class, 'edit']);
         $r->post('/perfil', [ProfileController::class, 'update']);
 
+        // Catálogo de proveedores
+        $r->get('/productos', [CatalogController::class, 'index']);
+        $r->get('/productos/buscar', [CatalogController::class, 'search']);
+        $r->get('/productos/{code:[a-z0-9_]+}/{id:[A-Za-z0-9_.-]+}', [CatalogController::class, 'show']);
+
         // Solo administradores
         $r->group(['admin'], function (Router $r) {
             $r->get('/empresa', [CompanyController::class, 'edit']);
@@ -48,6 +55,13 @@ return function (Router $r): void {
             $r->post('/usuarios', [UserController::class, 'store']);
             $r->get('/usuarios/{id:\d+}/editar', [UserController::class, 'edit']);
             $r->post('/usuarios/{id:\d+}', [UserController::class, 'update']);
+
+            $r->get('/proveedores', [ProviderController::class, 'index']);
+            $r->post('/proveedores/cache', [ProviderController::class, 'cache']);
+            $r->get('/proveedores/{code:[a-z0-9_]+}', [ProviderController::class, 'edit']);
+            $r->post('/proveedores/{code:[a-z0-9_]+}', [ProviderController::class, 'update']);
+            $r->post('/proveedores/{code:[a-z0-9_]+}/probar', [ProviderController::class, 'test']);
+            $r->get('/proveedores/{code:[a-z0-9_]+}/log', [ProviderController::class, 'logs']);
         });
     });
 };
