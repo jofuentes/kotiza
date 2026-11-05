@@ -24,8 +24,8 @@ final class ImageCache
                 return "{$base}.{$ext}";
             }
         }
-        if (is_file("{$base}.fail") && filemtime("{$base}.fail") > time() - 86400) {
-            return null; // no reintentar URLs rotas durante un día
+        if (is_file("{$base}.fail") && filemtime("{$base}.fail") > time() - 3600) {
+            return null; // no reintentar una imagen fallida durante una hora
         }
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             return null;
@@ -54,8 +54,8 @@ final class ImageCache
             CURLOPT_MAXREDIRS => 3,
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT => 6,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 10,
             CURLOPT_USERAGENT => 'Kotiza/1.0',
             CURLOPT_NOPROGRESS => false,
             CURLOPT_PROGRESSFUNCTION => fn ($c, $dlTotal, $dl) => $dl > self::MAX_BYTES ? 1 : 0,

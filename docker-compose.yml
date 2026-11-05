@@ -11,6 +11,11 @@ services:
       - "${APP_PORT:-8080}:80"
     volumes:
       - storage:/var/www/app/storage
+    # DNS para consultar a los mayoristas e imágenes. Si el DNS de la red local no responde a los
+    # contenedores (ej. Pi-hole limitado a la LAN), cada consulta tardaría segundos.
+    dns:
+      - ${DNS_PRIMARY:-1.1.1.1}
+      - ${DNS_SECONDARY:-8.8.8.8}
     depends_on:
       db:
         condition: service_healthy
