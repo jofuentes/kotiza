@@ -57,6 +57,8 @@ final class CatalogController extends Controller
     /** Quita el costo si el usuario no debe verlo y limpia la descripción HTML */
     private function present(array $p): array
     {
+        // Indica si se puede cotizar sin revelar el costo a quien no debe verlo
+        $p['hasPrice'] = $p['cost'] !== null;
         if (!$this->canSeeCost()) {
             $p['cost'] = null;
         }

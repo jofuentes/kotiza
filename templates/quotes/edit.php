@@ -123,31 +123,31 @@ $st = $state['status'];
         <div class="min-w-0 space-y-6">
 
             <!-- Datos generales -->
-            <fieldset class="card grid gap-4 p-5 md:grid-cols-6" :disabled="!state.editable">
-                <div class="md:col-span-3">
+            <fieldset class="card grid gap-4 p-5 md:grid-cols-12" :disabled="!state.editable">
+                <div class="md:col-span-6">
                     <span class="label">Cliente</span>
                     <?php $pickerModel = 'state.client'; include __DIR__ . '/client-picker.php'; ?>
                 </div>
-                <div class="md:col-span-3">
+                <div class="md:col-span-6">
                     <label class="label" for="q-title">Referencia / proyecto</label>
                     <input id="q-title" class="input" x-model="state.title" maxlength="200" placeholder="Ej. CCTV bodega norte">
                     <p class="hint">Vendedor: <span x-text="state.seller"></span></p>
                 </div>
-                <div class="md:col-span-1">
+                <div class="md:col-span-3">
                     <label class="label" for="q-date">Fecha</label>
                     <input id="q-date" type="date" class="input" x-model="state.issue_date" :class="errors.issue_date && 'input-error'">
                 </div>
-                <div class="md:col-span-1">
+                <div class="md:col-span-3">
                     <label class="label" for="q-valid">Vigencia</label>
                     <input id="q-valid" type="date" class="input" x-model="state.valid_until" :class="errors.valid_until && 'input-error'">
                 </div>
-                <div class="md:col-span-1">
+                <div class="md:col-span-2">
                     <label class="label" for="q-cur">Moneda</label>
                     <select id="q-cur" class="input" x-model="state.currency" @change="changeCurrency($event)">
                         <option value="MXN">MXN</option><option value="USD">USD</option>
                     </select>
                 </div>
-                <div class="md:col-span-3">
+                <div class="md:col-span-4">
                     <label class="label" for="q-rate">Tipo de cambio (MXN por USD)</label>
                     <div class="flex gap-2">
                         <input id="q-rate" type="number" step="0.0001" min="0" class="input" x-model.number="state.exchange_rate"
@@ -547,10 +547,10 @@ $st = $state['status'];
                         <div class="flex w-32 shrink-0 flex-col items-end gap-1 text-right text-sm">
                             <div x-show="state.show_cost && p.cost !== null" class="text-xs text-slate-500" x-text="'Costo ' + money(p.cost, p.currency)"></div>
                             <div x-show="p.listPrice" class="text-xs text-slate-500" x-text="'Lista ' + money(p.listPrice, p.currency)"></div>
-                            <div x-show="p.cost === null" class="text-xs text-amber-600" x-text="p.note || 'Sin precio'"></div>
+                            <div x-show="!p.hasPrice" class="text-xs text-amber-600" x-text="p.note || 'Sin precio'"></div>
                             <div class="flex">
                                 <input type="number" min="1" step="1" class="input w-14 rounded-r-none px-1 py-1 text-right text-xs" x-model.number="qty">
-                                <button type="button" class="btn btn-primary rounded-l-none px-2 py-1 text-xs" :disabled="search.adding[p.provider + ':' + p.providerId] || p.cost === null"
+                                <button type="button" class="btn btn-primary rounded-l-none px-2 py-1 text-xs" :disabled="search.adding[p.provider + ':' + p.providerId] || !p.hasPrice"
                                         @click="addProduct(p, qty)" x-text="search.adding[p.provider + ':' + p.providerId] ? '…' : 'Agregar'"></button>
                             </div>
                         </div>
