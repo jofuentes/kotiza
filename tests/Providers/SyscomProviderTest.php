@@ -77,6 +77,7 @@ final class SyscomProviderTest extends TestCase
         $this->assertSame('fuente 12v', $q['busqueda']);
         $this->assertSame('true', $q['stock']);
         $this->assertSame('usd', $q['moneda']);
+        $this->assertSame('true', $q['financiero'], 'descuento financiero activo por defecto');
         $this->assertSame('true', $q['inventarios']);
 
         $this->assertSame(2, $r->total);
@@ -108,6 +109,16 @@ final class SyscomProviderTest extends TestCase
         $this->assertSame(10.20, $first->cost);
         $this->assertSame(39, $first->stock);
         $this->assertSame('MXN', $first->currency);
+    }
+
+    public function testFinancialDiscountCanBeDisabled(): void
+    {
+        $p = $this->provider(['financial_discount' => false]);
+        $this->mock->append(self::token(), self::json(self::fixture('product')));
+        $p->getProduct('215182');
+        parse_str($this->history[1]->getUri()->getQuery(), $q);
+        $this->assertArrayNotHasKey('financiero', $q);
+        $this->assertSame('usd', $q['moneda']);
     }
 
     public function testCostFallsBackWhenConfiguredPriceMissing(): void

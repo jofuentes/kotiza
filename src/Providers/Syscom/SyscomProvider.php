@@ -44,12 +44,14 @@ final class SyscomProvider extends AbstractProvider
     {
         return [
             new FieldDefinition('cost_price', 'Precio que se toma como costo', 'select',
-                'Si ese precio no viene en un producto se usa el siguiente disponible.', false, [
-                    'precio_descuento' => 'Precio con descuento (recomendado)',
-                    'precio_especial' => 'Precio especial',
+                'En syscom.mx: tu precio es el número grande; el especial aparece en verde y el de lista tachado. Si el precio elegido no viene en un producto se usa el siguiente disponible.', false, [
+                    'precio_descuento' => 'Tu precio de distribuidor (el grande en syscom.mx) — recomendado',
+                    'precio_especial' => 'Precio especial (el verde en syscom.mx)',
+                    'precio_lista' => 'Precio de lista (el tachado en syscom.mx)',
                     'precio_1' => 'Precio 1',
-                    'precio_lista' => 'Precio de lista',
                 ], 'precio_descuento'),
+            new FieldDefinition('financial_discount', 'Aplicar descuento financiero', 'bool',
+                'Descuento que Syscom aplica a tu precio en su sitio (pago de contado). Actívalo para que el costo coincida con el precio grande de syscom.mx.', false, [], true),
             new FieldDefinition('currency', 'Moneda en que se consultan los precios', 'select',
                 'Syscom cotiza en USD; el tipo de cambio se aplica en la cotización.', false,
                 ['usd' => 'Dólares (USD)', 'mxn' => 'Pesos (MXN, convertidos por Syscom)'], 'usd'),
@@ -118,10 +120,7 @@ final class SyscomProvider extends AbstractProvider
         $cfg = self::config();
         $query = trim($query);
         $page = max(1, (int) ($filters['page'] ?? 1));
-        $common = [
-            'pagina' => $page,
-            'moneda' => $this->setting('currency'),
-        ];
+        $common = ['pagina' => $page] + $this->priceParams();
         if (!empty($filters['in_stock'])) {
             $common['stock'] = 'true';
         }
@@ -170,7 +169,7 @@ final class SyscomProvider extends AbstractProvider
         foreach (array_chunk($ids, $cfg['max_ids_per_request']) as $chunk) {
             $url = $cfg['base_url'] . str_replace('{id}', implode(',', $chunk), $cfg['endpoints']['product']);
             try {
-                $data = $this->getJson($url, ['moneda' => $this->setting('currency'), 'inventarios' => 'true']);
+                $data = $this->getJson($url, $this->priceParams() + ['inventarios' => 'true']);
             } catch (ProviderException $e) {
                 if ($e->httpStatus === 404) {
                     continue; // product_not_available
@@ -187,6 +186,16 @@ final class SyscomProvider extends AbstractProvider
             }
         }
         return $out;
+    }
+
+    /** Parámetros que determinan el precio devuelto por Syscom */
+    private function priceParams(): array
+    {
+        $params = ['moneda' => $this->setting('currency')];
+        if ($this->setting('financial_discount')) {
+            $params['financiero'] = 'true';
+        }
+        return $params;
     }
 
     public function getExchangeRate(): ?float

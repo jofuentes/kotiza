@@ -115,9 +115,20 @@ final class ProviderAccountRepository
                 // Credenciales distintas: el token anterior ya no sirve
                 Database::query('DELETE FROM provider_tokens WHERE provider_account_id = ?', [$row['id']]);
             }
+            $oldSettings = json_decode((string) ($row['settings'] ?? '{}'), true) ?: [];
+            if ($merged !== $current || $oldSettings != $data['settings']) {
+                // Precios en caché calculados con otra configuración: se descartan
+                $this->clearCache((int) $row['id']);
+            }
             return (int) $row['id'];
         }
         return Database::insert('provider_accounts', $fields + ['company_id' => $companyId, 'provider_code' => $code]);
+    }
+
+    public function clearCache(int $accountId): void
+    {
+        Database::query('DELETE FROM search_cache WHERE provider_account_id = ?', [$accountId]);
+        Database::query('DELETE FROM product_cache WHERE provider_account_id = ?', [$accountId]);
     }
 
     public function recordTest(int $accountId, ConnectionResult $r): void
