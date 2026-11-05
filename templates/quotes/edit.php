@@ -9,6 +9,7 @@ $cfg = [
         'rate' => url('/cotizaciones/' . $state['id'] . '/tipo-cambio'),
         'search' => url('/productos/buscar'),
         'approve' => url('/cotizaciones/' . $state['id'] . '/aprobar'),
+        'pdf' => url('/cotizaciones/' . $state['id'] . '/pdf'),
     ],
 ];
 $st = $state['status'];
@@ -286,6 +287,19 @@ $st = $state['status'];
                 <div class="flex justify-between border-t border-slate-200 pt-2 text-lg font-semibold dark:border-slate-700"><span>Total</span><span x-text="money(totals.total)"></span></div>
             </fieldset>
 
+            <fieldset class="card space-y-3 p-5 text-sm" :disabled="!state.editable && false">
+                <h2 class="font-semibold">PDF</h2>
+                <div class="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                    <template x-for="[k, label] in [['show_images', 'Imágenes'], ['show_brands', 'Marca y modelo'], ['show_stock', 'Existencias'], ['show_tax', 'Desglose de IVA']]" :key="k">
+                        <label class="flex items-center gap-2"><input type="checkbox" class="h-4 w-4 accent-brand" x-model="state.pdf_options[k]" :disabled="!state.editable"><span x-text="label"></span></label>
+                    </template>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-secondary flex-1" @click="openPreview()">Vista previa</button>
+                    <button type="button" class="btn btn-primary flex-1" @click="downloadPdf()">Descargar</button>
+                </div>
+            </fieldset>
+
             <div class="card space-y-1.5 p-5 text-sm" x-show="state.show_cost">
                 <h2 class="mb-2 font-semibold">Interno <span class="text-xs font-normal text-slate-500">(no aparece en el PDF)</span></h2>
                 <div class="flex justify-between"><span>Costo</span><span x-text="money(totals.cost)"></span></div>
@@ -295,6 +309,25 @@ $st = $state['status'];
                 <p class="text-xs text-red-600" x-show="lowMargin(totals.margin)" x-text="'Por debajo del margen mínimo (' + state.min_margin + ' %).'"></p>
             </div>
         </aside>
+    </div>
+
+    <!-- Vista previa del PDF -->
+    <div x-cloak x-show="preview" class="fixed inset-0 z-40 bg-black/40" @click="preview = false" x-transition.opacity></div>
+    <div x-cloak x-show="preview" class="fixed inset-y-0 right-0 z-50 flex w-full max-w-4xl flex-col bg-slate-100 shadow-xl dark:bg-slate-900"
+         x-transition:enter="transition duration-200" x-transition:enter-start="translate-x-full" x-transition:leave="transition duration-150" x-transition:leave-end="translate-x-full"
+         @keydown.escape.window="preview = false">
+        <div class="flex items-center gap-3 border-b border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="font-semibold">Vista previa</h2>
+            <span class="text-xs text-slate-500" x-text="saving ? 'Guardando…' : (previewLoading ? 'Generando PDF…' : 'Se actualiza al editar')"></span>
+            <div class="ml-auto flex gap-2">
+                <button type="button" class="btn btn-secondary" @click="refreshPreview()">Actualizar</button>
+                <button type="button" class="btn btn-primary" @click="downloadPdf()">Descargar</button>
+                <button type="button" class="rounded p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" @click="preview = false" aria-label="Cerrar">✕</button>
+            </div>
+        </div>
+        <template x-if="preview && previewUrl">
+            <iframe :src="previewUrl" class="h-full w-full flex-1 border-0 bg-white" title="Vista previa del PDF" @load="previewLoading = false"></iframe>
+        </template>
     </div>
 
     <!-- Panel de búsqueda de productos -->

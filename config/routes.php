@@ -60,6 +60,7 @@ return function (Router $r): void {
         $r->get('/cotizaciones/{id:\d+}/tipo-cambio', [QuoteController::class, 'exchangeRate']);
         $r->post('/cotizaciones/{id:\d+}/eliminar', [QuoteController::class, 'destroy']);
         $r->post('/cotizaciones/{id:\d+}/aprobar', [QuoteController::class, 'approve'], ['admin']);
+        $r->get('/cotizaciones/{id:\d+}/pdf', [QuoteController::class, 'pdf']);
 
         // Catálogo de proveedores
         $r->get('/productos', [CatalogController::class, 'index']);

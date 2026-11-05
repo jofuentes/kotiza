@@ -131,6 +131,7 @@ final class QuoteService
             'cost_includes_vat' => (int) ($p['costIncludesVat'] ?? false),
             'cost_fetched_at' => date('Y-m-d H:i:s', time() - (int) $r['age_minutes'] * 60),
             'list_price' => $p['listPrice'] ?? null,
+            'stock' => isset($p['stock']) ? (int) $p['stock'] : null,
             'price_calculated' => $price->price,
             'price_rule' => mb_substr($price->label, 0, 200),
             'rule_discount' => $price->suggestedDiscount,
@@ -197,6 +198,7 @@ final class QuoteService
             'notes' => (string) ($in['notes'] ?? ''),
             'terms' => (string) ($in['terms'] ?? ''),
         ];
+        $pdfOptions = self::pdfOptions(is_array($in['pdf_options'] ?? null) ? $in['pdf_options'] : []);
         $v = Validator::make($header, [
             'title' => 'max:200', 'client_id' => 'integer',
             'issue_date' => 'required|date', 'valid_until' => 'required|date',
@@ -287,7 +289,8 @@ final class QuoteService
             throw new ValidationException(['exchange_rate' => 'Captura el tipo de cambio: hay partidas en otra moneda.']);
         }
 
-        Database::transaction(function () use ($qid, $quote, $header, $sections, $items, $existingSections, $existingItems, $newCurrency, $newRate, $oldRate, $currencyChanged, $rateChanged) {
+        Database::transaction(function () use ($qid, $quote, $header, $sections, $items, $existingSections, $existingItems, $newCurrency, $newRate, $oldRate, $currencyChanged, $rateChanged, $pdfOptions) {
+            Database::query('UPDATE quotes SET pdf_options = ? WHERE id = ?', [json_encode($pdfOptions), $qid]);
             $rateLabel = $quote['exchange_source'];
             if ($rateChanged) {
                 $current = ExchangeRateService::current($this->company);
@@ -566,6 +569,7 @@ final class QuoteService
             'approval_status' => $quote['approval_status'],
             'approval_note' => (string) $quote['approval_note'],
             'updated_at' => $quote['updated_at'],
+            'pdf_options' => self::pdfOptions(json_decode((string) $quote['pdf_options'], true) ?: []),
         ];
     }
 
@@ -603,6 +607,23 @@ final class QuoteService
             'unit_cost' => $showCost ? $in['unit_cost'] : null,
             'cost_fetched_at' => $r['cost_fetched_at'],
         ];
+    }
+
+    public const PDF_OPTIONS = [
+        'show_images' => true,   // miniaturas de producto
+        'show_brands' => true,   // marca y modelo
+        'show_stock' => false,   // existencia al momento de cotizar
+        'show_tax' => true,      // desglose de IVA (si no, precios con IVA incluido)
+    ];
+
+    /** Opciones del PDF normalizadas (solo claves conocidas, booleanas) */
+    public static function pdfOptions(array $in): array
+    {
+        $out = [];
+        foreach (self::PDF_OPTIONS as $k => $default) {
+            $out[$k] = array_key_exists($k, $in) ? filter_var($in[$k], FILTER_VALIDATE_BOOLEAN) : $default;
+        }
+        return $out;
     }
 
     private function snapshotClient(int $quoteId): void

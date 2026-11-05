@@ -25,6 +25,11 @@
             openNotes: {},
             dragKey: null,
             dropTarget: null,
+            // Vista previa del PDF
+            preview: false,
+            previewUrl: '',
+            previewLoading: false,
+            _previewTimer: null,
             // Buscador
             drawer: false,
             search: { q: '', inStock: false, selected: cfg.providers.map(p => p.code), results: [], status: {}, loading: false, error: '', section: '', adding: {} },
@@ -38,6 +43,12 @@
                     if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); this.save(); }
                 });
                 setInterval(() => { if (this.dirty && !this.saving && this.state.editable) this.save(true); }, 30000);
+                // Vista previa en vivo: tras cada cambio se guarda y se regenera el PDF
+                this.$watch('state', () => {
+                    if (!this.preview || !this.dirty) return; // al recibir el estado guardado no se regenera de nuevo
+                    clearTimeout(this._previewTimer);
+                    this._previewTimer = setTimeout(() => this.refreshPreview(), 1500);
+                });
             },
 
             // ---------- Estado ----------
@@ -49,7 +60,7 @@
                     title: s.title, client_id: s.client_id, issue_date: s.issue_date, valid_until: s.valid_until,
                     currency: s.currency, exchange_rate: s.exchange_rate, vat_rate: s.vat_rate,
                     global_discount_type: s.global_discount_type, global_discount_value: s.global_discount_value,
-                    notes: s.notes, terms: s.terms,
+                    notes: s.notes, terms: s.terms, pdf_options: s.pdf_options,
                     sections: s.sections.map(x => ({ key: x.key, title: x.title })),
                     items: s.items.map(it => ({
                         id: it.id, key: it.key, section_key: it.section_key, description: it.description, unit: it.unit,
@@ -292,6 +303,22 @@
                 this.state.exchange_rate = data.rate;
                 await this.save(true);
                 this.flash('success', `Tipo de cambio actualizado: ${data.rate} (${data.source}).`);
+            },
+
+            // ---------- PDF ----------
+            async openPreview() {
+                this.preview = true;
+                await this.refreshPreview();
+            },
+            async refreshPreview() {
+                if (this.dirty && this.state.editable) await this.save(true);
+                if (this.dirty) return; // no se pudo guardar: se mantiene la última versión válida
+                this.previewLoading = true;
+                this.previewUrl = this.urls.pdf + '?t=' + Date.now() + '#view=FitH&toolbar=1';
+            },
+            async downloadPdf() {
+                if (this.dirty && this.state.editable) await this.save(true);
+                window.location.href = this.urls.pdf + '?descargar=1';
             },
 
             // ---------- Buscador de productos ----------

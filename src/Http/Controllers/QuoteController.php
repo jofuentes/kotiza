@@ -10,6 +10,7 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Domain\Quotes\QuoteService;
 use App\Domain\Quotes\ValidationException;
+use App\Pdf\QuotePdfRenderer;
 use App\Pricing\ExchangeRateService;
 use App\Providers\ProviderAccountRepository;
 use App\Providers\ProviderRegistry;
@@ -127,6 +128,35 @@ final class QuoteController extends Controller
     {
         QuoteService::forCurrentCompany()->find((int) $request->params['id']);
         return Response::json(ExchangeRateService::current(Auth::company()));
+    }
+
+    /** PDF de la cotización: en línea (vista previa) o descarga (?descargar=1) */
+    public function pdf(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        $quote = $svc->find((int) $request->params['id']);
+        $company = Auth::company();
+        try {
+            $pdf = (new QuotePdfRenderer($company))->render($quote);
+        } catch (\Throwable $e) {
+            error_log((string) $e);
+            return new Response('<p style="font-family:sans-serif;padding:2rem">No se pudo generar el PDF: ' . e($e->getMessage()) . '</p>', 500);
+        }
+        $name = QuotePdfRenderer::filename($quote);
+        $download = $request->input('descargar') === '1';
+        if ($download) {
+            // Copia del último PDF descargado
+            $dir = storage_path('pdfs/' . (int) $company['id']);
+            if (is_dir($dir) || @mkdir($dir, 0775, true)) {
+                @file_put_contents($dir . '/' . $name, $pdf);
+            }
+        }
+        return new Response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => ($download ? 'attachment' : 'inline') . '; filename="' . $name . '"',
+            'Cache-Control' => 'private, no-store',
+            'X-Frame-Options' => 'SAMEORIGIN',
+        ]);
     }
 
     public function approve(Request $request): Response
