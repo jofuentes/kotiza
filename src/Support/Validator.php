@@ -5,7 +5,7 @@ namespace App\Support;
 
 /**
  * Validación de entradas en servidor con mensajes en español.
- * Reglas: required, email, min:n, max:n, same:campo, in:a,b, numeric, between:a,b, integer, rfc, color, url
+ * Reglas: required, email, min:n, max:n, same:campo, in:a,b, numeric, between:a,b, integer, rfc, color, url, date (AAAA-MM-DD)
  */
 final class Validator
 {
@@ -78,6 +78,10 @@ final class Validator
             'rfc' => preg_match('/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/u', mb_strtoupper($str)) ? null : "«{$label}» no es un RFC válido.",
             'color' => preg_match('/^#[0-9A-Fa-f]{6}$/', $str) ? null : "«{$label}» debe ser un color tipo #1E40AF.",
             'url' => filter_var($str, FILTER_VALIDATE_URL) ? null : "«{$label}» no es una URL válida.",
+            'date' => (function () use ($str, $label) {
+                $d = \DateTime::createFromFormat('!Y-m-d', $str);
+                return $d && $d->format('Y-m-d') === $str ? null : "«{$label}» no es una fecha válida.";
+            })(),
             default => throw new \LogicException("Regla de validación desconocida: {$rule}"),
         };
     }

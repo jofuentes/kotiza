@@ -36,4 +36,11 @@ final class ValidatorTest extends TestCase
         );
         $this->assertSame(['c', 'iva', 'n'], array_keys($v->errors()));
     }
+
+    public function testDate(): void
+    {
+        $this->assertFalse(Validator::make(['d' => '2026-11-04'], ['d' => 'date'])->fails());
+        $this->assertTrue(Validator::make(['d' => '2026-02-30'], ['d' => 'date'])->fails());
+        $this->assertTrue(Validator::make(['d' => '04/11/2026'], ['d' => 'date'])->fails());
+    }
 }

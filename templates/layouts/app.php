@@ -2,6 +2,8 @@
 $current = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $nav = [
     ['/', 'Inicio', 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10'],
+    ['/cotizaciones', 'Cotizaciones', 'M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.6a1 1 0 0 1 .7.3l5.4 5.4a1 1 0 0 1 .3.7V19a2 2 0 0 1-2 2z'],
+    ['/clientes', 'Clientes', 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z'],
     ['/productos', 'Productos', 'M20 7 12 3 4 7m16 0-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
 ];
 if ($isAdmin) {

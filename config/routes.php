@@ -4,12 +4,14 @@ declare(strict_types=1);
 use App\Core\Router;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CatalogController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CompanyContextController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
+use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\UserController;
 
@@ -37,6 +39,25 @@ return function (Router $r): void {
         $r->get('/archivos/{path:.+}', [FileController::class, 'show']);
         $r->get('/perfil', [ProfileController::class, 'edit']);
         $r->post('/perfil', [ProfileController::class, 'update']);
+
+        // Clientes
+        $r->get('/clientes', [ClientController::class, 'index']);
+        $r->get('/clientes/buscar', [ClientController::class, 'search']);
+        $r->get('/clientes/nuevo', [ClientController::class, 'create']);
+        $r->post('/clientes', [ClientController::class, 'store']);
+        $r->get('/clientes/{id:\d+}/editar', [ClientController::class, 'edit']);
+        $r->post('/clientes/{id:\d+}', [ClientController::class, 'update']);
+        $r->post('/clientes/{id:\d+}/eliminar', [ClientController::class, 'destroy']);
+
+        // Cotizaciones
+        $r->get('/cotizaciones', [QuoteController::class, 'index']);
+        $r->get('/cotizaciones/nueva', [QuoteController::class, 'create']);
+        $r->post('/cotizaciones', [QuoteController::class, 'store']);
+        $r->get('/cotizaciones/{id:\d+}', [QuoteController::class, 'edit']);
+        $r->post('/cotizaciones/{id:\d+}', [QuoteController::class, 'save']);
+        $r->post('/cotizaciones/{id:\d+}/productos', [QuoteController::class, 'addProduct']);
+        $r->get('/cotizaciones/{id:\d+}/tipo-cambio', [QuoteController::class, 'exchangeRate']);
+        $r->post('/cotizaciones/{id:\d+}/eliminar', [QuoteController::class, 'destroy']);
 
         // Catálogo de proveedores
         $r->get('/productos', [CatalogController::class, 'index']);
