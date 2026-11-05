@@ -26,6 +26,7 @@ table { border-collapse: collapse; width: 100%; }
 .folio-box .lbl { color: #6b7280; text-align: right; }
 .card { border: 0.3mm solid #e5e7eb; }
 .card td { padding: 2.5mm 3mm; vertical-align: top; }
+.info td { padding: 0 0 3mm 0; vertical-align: top; }
 .card-title { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.6pt; color: <?= e($secondary) ?>; font-weight: bold; padding-bottom: 1mm; }
 .items th { background-color: <?= e($primary) ?>; color: #ffffff; font-size: 7.5pt; font-weight: bold; text-transform: uppercase; padding: 2mm 1.5mm; text-align: left; }
 .items td { padding: 2mm 1.5mm; border-bottom: 0.2mm solid #e5e7eb; vertical-align: top; font-size: 8.5pt; }
@@ -69,7 +70,7 @@ table { border-collapse: collapse; width: 100%; }
             <?php if ($quote['title']): ?><div style="font-size: 10pt; margin-top: 1mm;"><?= e($quote['title']) ?></div><?php endif; ?>
         </td>
         <td style="width: 50%;">
-            <table class="folio-box card" style="width: 70mm;" align="right">
+            <table class="folio-box" style="width: 70mm;" align="right">
                 <tr><td class="lbl">Folio</td><td style="font-weight: bold; font-size: 10pt;"><?= e($quote['folio']) ?><?= (int) $quote['version'] > 1 ? ' v' . (int) $quote['version'] : '' ?></td></tr>
                 <tr><td class="lbl">Fecha</td><td><?= e($date($quote['issue_date'])) ?></td></tr>
                 <tr><td class="lbl">Vigencia</td><td><?= e($date($quote['valid_until'])) ?></td></tr>
@@ -80,7 +81,7 @@ table { border-collapse: collapse; width: 100%; }
 </table>
 
 <!-- Cliente y vendedor -->
-<table class="card" style="margin-bottom: 5mm;">
+<table class="info" style="margin-bottom: 5mm; border-bottom: 0.3mm solid #e5e7eb;">
     <tr>
         <td style="width: 60%;">
             <div class="card-title">Cliente</div>
@@ -94,7 +95,7 @@ table { border-collapse: collapse; width: 100%; }
                 <div class="muted">—</div>
             <?php endif; ?>
         </td>
-        <td style="width: 40%; border-left: 0.3mm solid #e5e7eb;">
+        <td style="width: 40%;">
             <div class="card-title">Atendido por</div>
             <div style="font-weight: bold;"><?= e($seller['name']) ?></div>
             <div class="muted"><?= e($seller['email']) ?></div>
