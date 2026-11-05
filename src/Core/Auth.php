@@ -57,7 +57,7 @@ final class Auth
         return Database::fetchAll(
             'SELECT c.id, c.trade_name, c.legal_name, c.logo_path, cu.role
                FROM company_user cu JOIN companies c ON c.id = cu.company_id
-              WHERE cu.user_id = ? AND c.is_active = 1
+              WHERE cu.user_id = ? AND c.is_active = 1 AND cu.is_active = 1
            ORDER BY c.trade_name',
             [self::id()]
         );
@@ -67,7 +67,7 @@ final class Auth
     {
         $m = Database::fetch(
             'SELECT cu.* FROM company_user cu JOIN companies c ON c.id = cu.company_id
-              WHERE cu.user_id = ? AND cu.company_id = ? AND c.is_active = 1',
+              WHERE cu.user_id = ? AND cu.company_id = ? AND c.is_active = 1 AND cu.is_active = 1',
             [self::id(), $companyId]
         );
         if (!$m) {
@@ -97,11 +97,18 @@ final class Auth
     {
         if (self::$membership === null && self::id() && self::companyId()) {
             self::$membership = Database::fetch(
-                'SELECT * FROM company_user WHERE user_id = ? AND company_id = ?',
+                'SELECT * FROM company_user WHERE user_id = ? AND company_id = ? AND is_active = 1',
                 [self::id(), self::companyId()]
             );
         }
         return self::$membership;
+    }
+
+    /** Olvida la caché de la petición (tras editar el propio usuario o la membresía) */
+    public static function refresh(): void
+    {
+        self::$user = null;
+        self::$membership = null;
     }
 
     public static function isAdmin(): bool

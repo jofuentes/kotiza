@@ -45,6 +45,15 @@ final class AuthController extends Controller
             return $fail($user && $valid ? 'Tu usuario está desactivado.' : 'Correo o contraseña incorrectos.');
         }
 
+        $hasCompany = Database::value(
+            'SELECT 1 FROM company_user cu JOIN companies c ON c.id = cu.company_id
+              WHERE cu.user_id = ? AND cu.is_active = 1 AND c.is_active = 1 LIMIT 1',
+            [$user['id']]
+        );
+        if (!$hasCompany) {
+            return $fail('Tu usuario no tiene acceso activo a ninguna empresa. Contacta al administrador.');
+        }
+
         if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
             Database::query('UPDATE users SET password_hash = ? WHERE id = ?', [
                 password_hash($password, PASSWORD_DEFAULT), $user['id'],

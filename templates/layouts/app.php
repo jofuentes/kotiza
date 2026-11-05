@@ -3,6 +3,10 @@ $current = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $nav = [
     ['/', 'Inicio', 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10'],
 ];
+if ($isAdmin) {
+    $nav[] = ['/empresa', 'Empresa', 'M3 21h18M5 21V7l7-4 7 4v14M9 9h1m-1 4h1m4-4h1m-1 4h1M10 21v-4h4v4'];
+    $nav[] = ['/usuarios', 'Usuarios', 'M17 20h5v-2a4 4 0 0 0-5.4-3.7M17 20H7m10 0v-2c0-.7-.1-1.3-.4-1.9M7 20H2v-2a4 4 0 0 1 5.4-3.7M7 20v-2c0-.7.1-1.3.4-1.9m0 0a5 5 0 0 1 9.2 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es-MX" class="h-full">
@@ -15,13 +19,17 @@ $nav = [
     <!-- Barra lateral -->
     <aside :class="sidebar ? 'translate-x-0' : '-translate-x-full'"
            class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:static lg:translate-x-0 dark:border-slate-800 dark:bg-slate-900">
-        <div class="flex h-16 items-center gap-2 border-b border-slate-200 px-5 font-bold dark:border-slate-800">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white">C</span>
-            Cotizador
-        </div>
+        <a href="<?= e(url('/')) ?>" class="flex h-16 items-center gap-2 border-b border-slate-200 px-5 font-bold dark:border-slate-800">
+            <?php if (!empty($company['logo_path'])): ?>
+                <img src="<?= e(url('/archivos/' . $company['logo_path'])) ?>" alt="<?= e($company['trade_name']) ?>" class="h-9 max-w-[11rem] rounded bg-white object-contain px-1">
+            <?php else: ?>
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white">C</span>
+                Cotizador
+            <?php endif; ?>
+        </a>
         <nav class="flex-1 space-y-1 p-3">
             <?php foreach ($nav as [$href, $label, $icon]): ?>
-                <?php $active = $href === '/' ? $current === '/' : str_starts_with((string) $current, $href); ?>
+                <?php $active = $href === '/' ? $current === '/' : ($current === $href || str_starts_with((string) $current, $href . '/')); ?>
                 <a href="<?= e(url($href)) ?>" class="nav-link <?= $active ? 'nav-link-active' : '' ?>">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="<?= e($icon) ?>"/></svg>
                     <?= e($label) ?>
@@ -59,6 +67,10 @@ $nav = [
                         <?= e($authUser['email'] ?? '') ?><br>
                         <?= $isAdmin ? 'Administrador' : 'Vendedor' ?>
                     </div>
+                    <a href="<?= e(url('/perfil')) ?>" class="nav-link">Mi perfil</a>
+                    <?php if ($isAdmin): ?>
+                    <a href="<?= e(url('/empresas/nueva')) ?>" class="nav-link">Nueva empresa</a>
+                    <?php endif; ?>
                     <form method="post" action="<?= e(url('/logout')) ?>">
                         <?= csrf_field() ?>
                         <button class="nav-link w-full">Cerrar sesión</button>

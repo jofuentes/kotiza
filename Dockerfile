@@ -12,6 +12,7 @@ RUN case "${TARGETARCH:-amd64}" in arm64) TW=linux-arm64 ;; *) TW=linux-x64 ;; e
 WORKDIR /build
 COPY resources ./resources
 COPY templates ./templates
+COPY src ./src
 COPY public ./public
 RUN tailwindcss -i resources/css/app.css -o public/assets/app.css --minify \
  && curl -fsSL -o public/assets/alpine.min.js "https://cdn.jsdelivr.net/npm/alpinejs@${ALPINE_VERSION}/dist/cdn.min.js"

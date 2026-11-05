@@ -12,5 +12,5 @@
     <?php endforeach; ?>
 </div>
 <div class="card mt-6 p-6 text-sm text-slate-600 dark:text-slate-300">
-    Próximo folio: <span class="font-mono font-semibold"><?= e($company['folio_prefix']) ?>-<?= date('Y') ?>-<?= str_pad((string) $company['folio_next'], (int) $company['folio_padding'], '0', STR_PAD_LEFT) ?></span>
+    Próximo folio: <span class="font-mono font-semibold"><?= e(\App\Domain\FolioService::preview($company)) ?></span>
 </div>

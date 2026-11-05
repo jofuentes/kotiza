@@ -1,29 +1,11 @@
 <?php
 $pageTitle = 'Configuración inicial';
 $wide = true;
-$field = function (string $name, string $label, string $type = 'text', array $opts = []) use ($old, $errors) {
-    $err = $errors[$name] ?? null;
-    $value = $type === 'password' ? '' : ($old[$name] ?? '');
-    $attrs = '';
-    foreach ($opts['attrs'] ?? [] as $k => $v) {
-        $attrs .= ' ' . e($k) . '="' . e($v) . '"';
-    }
-    $html = '<div class="' . e($opts['class'] ?? '') . '"><label class="label" for="' . e($name) . '">' . e($label) . '</label>';
-    if (isset($opts['options'])) {
-        $html .= '<select class="input" id="' . e($name) . '" name="' . e($name) . '">';
-        foreach ($opts['options'] as $val => $text) {
-            $html .= '<option value="' . e($val) . '"' . ((string) $val === (string) $value ? ' selected' : '') . '>' . e($text) . '</option>';
-        }
-        $html .= '</select>';
-    } else {
-        $html .= '<input class="input' . ($err ? ' input-error' : '') . '" type="' . e($type) . '" id="' . e($name) . '" name="' . e($name) . '" value="' . e($value) . '"' . $attrs . '>';
-    }
-    if ($err) {
-        $html .= '<p class="field-error">' . e($err) . '</p>';
-    } elseif (!empty($opts['hint'])) {
-        $html .= '<p class="hint">' . e($opts['hint']) . '</p>';
-    }
-    return $html . '</div>';
+\App\Support\Form::bind($old, $errors);
+$field = function (string $name, string $label, string $type = 'text', array $opts = []) {
+    return isset($opts['options'])
+        ? \App\Support\Form::select($name, $label, $opts['options'], $opts)
+        : \App\Support\Form::input($name, $label, $type, $opts);
 };
 ?>
 <div class="card p-6 sm:p-8">
