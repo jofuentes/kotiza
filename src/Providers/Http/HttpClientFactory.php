@@ -37,7 +37,7 @@ final class HttpClientFactory
             'timeout' => 20,
             // Los códigos 4xx/5xx los interpreta el conector (necesita leer Retry-After y el cuerpo)
             'http_errors' => false,
-            'headers' => ['Accept' => 'application/json', 'User-Agent' => 'Cotizador/1.0'],
+            'headers' => ['Accept' => 'application/json', 'User-Agent' => 'Kotiza/1.0'],
         ]);
     }
 

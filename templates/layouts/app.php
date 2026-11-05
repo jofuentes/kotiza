@@ -28,8 +28,8 @@ if ($isAdmin) {
             <?php if (!empty($company['logo_path'])): ?>
                 <img src="<?= e(url('/archivos/' . $company['logo_path'])) ?>" alt="<?= e($company['trade_name']) ?>" class="h-9 max-w-[11rem] rounded bg-white object-contain px-1">
             <?php else: ?>
-                <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white">C</span>
-                Cotizador
+                <img src="<?= e(asset('assets/brand/kotiza-logo.svg')) ?>" alt="<?= e(app_name()) ?>" class="h-8 dark:hidden">
+                <img src="<?= e(asset('assets/brand/kotiza-logo-dark.svg')) ?>" alt="<?= e(app_name()) ?>" class="hidden h-8 dark:block">
             <?php endif; ?>
         </a>
         <nav class="flex-1 space-y-1 p-3">
@@ -51,6 +51,11 @@ if ($isAdmin) {
                 <?php endforeach; ?>
             </select>
         </form>
+        <?php endif; ?>
+        <?php if (!empty($company['logo_path'])): ?>
+        <div class="flex items-center gap-1.5 border-t border-slate-200 px-5 py-2 text-xs text-slate-400 dark:border-slate-800">
+            Hecho con <img src="<?= e(asset('assets/brand/kotiza-icon.svg')) ?>" alt="" class="h-3.5 w-3.5"> <?= e(app_name()) ?>
+        </div>
         <?php endif; ?>
     </aside>
 

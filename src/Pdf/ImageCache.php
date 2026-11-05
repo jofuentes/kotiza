@@ -56,7 +56,7 @@ final class ImageCache
             CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_TIMEOUT => 6,
-            CURLOPT_USERAGENT => 'Cotizador/1.0',
+            CURLOPT_USERAGENT => 'Kotiza/1.0',
             CURLOPT_NOPROGRESS => false,
             CURLOPT_PROGRESSFUNCTION => fn ($c, $dlTotal, $dl) => $dl > self::MAX_BYTES ? 1 : 0,
         ]);

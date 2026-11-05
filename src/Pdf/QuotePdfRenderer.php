@@ -40,7 +40,7 @@ final class QuotePdfRenderer
         ]);
         $mpdf->SetTitle('Cotización ' . $quote['folio']);
         $mpdf->SetAuthor((string) $c['trade_name']);
-        $mpdf->SetCreator('Cotizador');
+        $mpdf->SetCreator(app_name());
 
         $background = $this->letterhead($mpdf);
         $data['background'] = $background;

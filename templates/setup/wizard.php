@@ -9,7 +9,7 @@ $field = function (string $name, string $label, string $type = 'text', array $op
 };
 ?>
 <div class="card p-6 sm:p-8">
-    <h1 class="text-xl font-semibold">Bienvenido a Cotizador</h1>
+    <h1 class="text-xl font-semibold">Bienvenido a <?= e(app_name()) ?></h1>
     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Configura la cuenta de administrador y tu primera empresa. Todo lo demás (logo, membrete, colores, proveedores…) lo podrás ajustar después desde la interfaz.</p>
 
     <?php if ($errors): ?>

@@ -1,6 +1,6 @@
 {
     "name": "cotizador/cotizador",
-    "description": "Cotizador multi-proveedor (Syscom, TVC, ...) self-hosted",
+    "description": "Kotiza — cotizador multi-proveedor (Syscom, TVC, …) self-hosted",
     "type": "project",
     "license": "proprietary",
     "require": {

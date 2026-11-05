@@ -4,6 +4,12 @@ declare(strict_types=1);
 use App\Core\Csrf;
 use App\Core\Env;
 
+/** Nombre visible de la aplicación (APP_NAME, por defecto «Kotiza») */
+function app_name(): string
+{
+    return (string) Env::get('APP_NAME', 'Kotiza');
+}
+
 /** Escapa texto para HTML */
 function e(mixed $value): string
 {

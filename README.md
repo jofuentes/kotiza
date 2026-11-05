@@ -1,4 +1,8 @@
-# Cotizador
+<p align="center"><img src="public/assets/brand/kotiza-logo.svg" alt="Kotiza" height="64"></p>
+
+# Kotiza
+
+*Antes llamado Cotizador.*
 
 Aplicación web self-hosted para generar cotizaciones profesionales a partir del catálogo de mayoristas (**Syscom** y **TVC**, ampliable a otros). Multi-empresa, en español, con PDF membretado, motor de precios, aprobaciones y trabajo colaborativo.
 
