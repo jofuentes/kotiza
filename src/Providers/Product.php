@@ -31,6 +31,8 @@ final class Product
         public readonly array $features = [],
         public readonly ?string $warranty = null,
         public readonly ?string $note = null,
+        /** El costo ya incluye IVA (según la configuración del proveedor) */
+        public readonly bool $costIncludesVat = false,
     ) {
     }
 
@@ -61,6 +63,7 @@ final class Product
             features: $a['features'] ?? [],
             warranty: $a['warranty'] ?? null,
             note: $a['note'] ?? null,
+            costIncludesVat: (bool) ($a['costIncludesVat'] ?? false),
         );
     }
 

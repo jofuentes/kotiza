@@ -85,7 +85,7 @@
                         </div>
                         <div class="w-32 shrink-0 text-right text-sm">
                             <div x-show="showCost">
-                                <div class="text-xs text-slate-500">Costo</div>
+                                <div class="text-xs text-slate-500" x-text="p.costIncludesVat ? 'Costo (IVA incl.)' : 'Costo (sin IVA)'"></div>
                                 <div class="font-semibold" x-text="p.cost !== null ? money(p.cost, p.currency) : '—'"></div>
                             </div>
                             <div class="mt-1 text-xs" :class="p.stock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'"
@@ -132,7 +132,7 @@
                             </div>
                         </div>
                         <dl class="grid h-max grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-                            <template x-if="showCost"><div class="contents"><dt class="text-slate-500">Costo</dt><dd class="font-semibold" x-text="detail.p.cost !== null ? money(detail.p.cost, detail.p.currency) : '—'"></dd></div></template>
+                            <template x-if="showCost"><div class="contents"><dt class="text-slate-500" x-text="detail.p.costIncludesVat ? 'Costo (IVA incl.)' : 'Costo (sin IVA)'"></dt><dd class="font-semibold" x-text="detail.p.cost !== null ? money(detail.p.cost, detail.p.currency) : '—'"></dd></div></template>
                             <dt class="text-slate-500">Existencia</dt><dd x-text="detail.p.stock"></dd>
                             <template x-for="[w, n] in Object.entries(detail.p.stockByWarehouse || {})" :key="w"><div class="contents"><dt class="pl-3 text-xs capitalize text-slate-400" x-text="w"></dt><dd class="text-xs" x-text="n"></dd></div></template>
                             <dt class="text-slate-500">Categoría</dt><dd x-text="detail.p.category || '—'"></dd>

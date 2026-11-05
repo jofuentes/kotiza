@@ -50,6 +50,8 @@ final class SyscomProvider extends AbstractProvider
                     'precio_lista' => 'Precio de lista (el tachado en syscom.mx)',
                     'precio_1' => 'Precio 1',
                 ], 'precio_descuento'),
+            new FieldDefinition('include_vat', 'Costo con IVA incluido', 'bool',
+                'El costo se toma con el IVA de Syscom ya sumado (como el precio grande de syscom.mx).', false, [], true),
             new FieldDefinition('financial_discount', 'Aplicar descuento financiero', 'bool',
                 'Descuento que Syscom aplica a tu precio en su sitio (pago de contado). Actívalo para que el costo coincida con el precio grande de syscom.mx.', false, [], true),
             new FieldDefinition('currency', 'Moneda en que se consultan los precios', 'select',
@@ -195,6 +197,9 @@ final class SyscomProvider extends AbstractProvider
         if ($this->setting('financial_discount')) {
             $params['financiero'] = 'true';
         }
+        if ($this->setting('include_vat')) {
+            $params['iva'] = 'true';
+        }
         return $params;
     }
 
@@ -292,6 +297,7 @@ final class SyscomProvider extends AbstractProvider
             features: array_values(array_filter((array) ($p['caracteristicas'] ?? []), 'is_string')),
             warranty: isset($p['garantia']) ? (string) $p['garantia'] : null,
             note: isset($p['nota']) ? (string) $p['nota'] : null,
+            costIncludesVat: (bool) $this->setting('include_vat'),
         );
     }
 

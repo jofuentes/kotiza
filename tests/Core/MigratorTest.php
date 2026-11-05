@@ -31,7 +31,7 @@ final class MigratorTest extends TestCase
             $stmts = Migrator::splitStatements(file_get_contents($file));
             $this->assertNotEmpty($stmts, basename($file));
             foreach ($stmts as $s) {
-                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|DROP|UPDATE)\b/i', $s, basename($file));
+                $this->assertMatchesRegularExpression('/^(CREATE|ALTER|INSERT|DROP|UPDATE|DELETE)\b/i', $s, basename($file));
             }
         }
     }

@@ -197,7 +197,7 @@ final class CatalogService
         foreach ($products as $p) {
             $data = $p->toArray();
             if (isset($existing[$p->providerId])) {
-                $data = array_merge($existing[$p->providerId], array_intersect_key($data, array_flip(['cost', 'currency', 'stock', 'stockByWarehouse', 'note'])));
+                $data = array_merge($existing[$p->providerId], array_intersect_key($data, array_flip(['cost', 'currency', 'stock', 'stockByWarehouse', 'note', 'costIncludesVat'])));
             }
             Database::query(
                 'INSERT INTO product_cache (provider_account_id, provider_product_id, model, data, price_fetched_at, detail_fetched_at)

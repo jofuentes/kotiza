@@ -78,6 +78,7 @@ final class SyscomProviderTest extends TestCase
         $this->assertSame('true', $q['stock']);
         $this->assertSame('usd', $q['moneda']);
         $this->assertSame('true', $q['financiero'], 'descuento financiero activo por defecto');
+        $this->assertSame('true', $q['iva'], 'costo con IVA por defecto');
         $this->assertSame('true', $q['inventarios']);
 
         $this->assertSame(2, $r->total);
@@ -99,6 +100,7 @@ final class SyscomProviderTest extends TestCase
         $second = $r->products[1];
         $this->assertNull($second->cost, 'sin distribución no hay costo');
         $this->assertSame('SOLICITAR DISTRIBUCIÓN', $second->note);
+        $this->assertTrue($first->costIncludesVat);
     }
 
     public function testCostSettingAndOpenBox(): void
@@ -113,11 +115,13 @@ final class SyscomProviderTest extends TestCase
 
     public function testFinancialDiscountCanBeDisabled(): void
     {
-        $p = $this->provider(['financial_discount' => false]);
+        $p = $this->provider(['financial_discount' => false, 'include_vat' => false]);
         $this->mock->append(self::token(), self::json(self::fixture('product')));
-        $p->getProduct('215182');
+        $prod = $p->getProduct('215182');
         parse_str($this->history[1]->getUri()->getQuery(), $q);
         $this->assertArrayNotHasKey('financiero', $q);
+        $this->assertArrayNotHasKey('iva', $q);
+        $this->assertFalse($prod->costIncludesVat);
         $this->assertSame('usd', $q['moneda']);
     }
 
