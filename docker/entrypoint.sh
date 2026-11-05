@@ -16,4 +16,12 @@ fi
 # Esperar a la base de datos y aplicar migraciones pendientes
 php bin/migrate.php --wait
 
+# Programador de tareas en segundo plano (sincronización de catálogos), cada minuto
+(
+    while true; do
+        su -s /bin/sh www-data -c "php /var/www/app/bin/scheduler.php" || true
+        sleep 60
+    done
+) &
+
 exec "$@"

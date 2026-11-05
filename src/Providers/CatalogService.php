@@ -41,13 +41,16 @@ final class CatalogService
             fn (ProviderAccount $a) => $codes === null || in_array($a->providerCode, $codes, true));
 
         $promises = [];
+        $local = [];
         $meta = [];
         $cached = [];
         foreach ($accounts as $acc) {
             $class = ProviderRegistry::get($acc->providerCode);
             $meta[$acc->providerCode] = ['name' => $class::name(), 'ok' => true, 'error' => null, 'cached' => false,
-                'stale' => false, 'age_minutes' => 0, 'total' => 0, 'ms' => 0];
-            $row = Database::fetch('SELECT result, fetched_at FROM search_cache WHERE provider_account_id = ? AND query_hash = ?', [$acc->id, $key]);
+                'stale' => false, 'age_minutes' => 0, 'total' => 0, 'ms' => 0, 'synced_minutes' => null];
+            $local[$acc->providerCode] = is_subclass_of($class, \App\Providers\Catalog\SyncableProvider::class);
+            // Los catálogos locales ya son una copia: no se cachea la búsqueda
+            $row = $local[$acc->providerCode] ? null : Database::fetch('SELECT result, fetched_at FROM search_cache WHERE provider_account_id = ? AND query_hash = ?', [$acc->id, $key]);
             if ($row && strtotime($row['fetched_at']) >= time() - $priceTtl) {
                 $cached[$acc->providerCode] = [SearchResult::fromArray(json_decode($row['result'], true)), $row['fetched_at']];
                 continue;
@@ -75,7 +78,9 @@ final class CatalogService
                 $meta[$code]['age_minutes'] = (int) floor((time() - strtotime($at)) / 60);
             } elseif (($settled[$code]['state'] ?? null) === 'fulfilled') {
                 $result = $settled[$code]['value'];
-                $this->storeSearch($acc, $key, $query, $result);
+                if (!$local[$code]) {
+                    $this->storeSearch($acc, $key, $query, $result);
+                }
             } else {
                 $reason = $settled[$code]['reason'] ?? null;
                 $meta[$code]['ok'] = false;
@@ -85,7 +90,7 @@ final class CatalogService
                     error_log((string) $reason);
                 }
                 // Respaldo: último resultado guardado, aunque esté vencido
-                $row = Database::fetch('SELECT result, fetched_at FROM search_cache WHERE provider_account_id = ? AND query_hash = ?', [$acc->id, $key]);
+                $row = $local[$code] ? null : Database::fetch('SELECT result, fetched_at FROM search_cache WHERE provider_account_id = ? AND query_hash = ?', [$acc->id, $key]);
                 if ($row) {
                     $result = SearchResult::fromArray(json_decode($row['result'], true));
                     $meta[$code]['stale'] = true;
@@ -93,6 +98,9 @@ final class CatalogService
                 }
             }
             if ($result) {
+                if ($result->syncedAt !== null) {
+                    $meta[$code]['synced_minutes'] = (int) floor((time() - $result->syncedAt) / 60);
+                }
                 $meta[$code]['total'] = $result->total;
                 $meta[$code]['pages'] = $result->pages;
                 foreach ($result->products as $p) {

@@ -46,6 +46,18 @@ $settings = $old['settings'] ?? [];
             <?php endforeach; ?>
         </div>
 
+        <?php if ($syncable): ?>
+        <div class="card space-y-3 p-6">
+            <h2 class="font-semibold">Sincronización del catálogo</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">La API de <?= e($name) ?> no permite buscar por texto, así que su catálogo se descarga completo en segundo plano y el buscador consulta esa copia. Precios y existencias se confirman en vivo al abrir la ficha de un producto.</p>
+            <?php if ($row && $row['is_active'] && $storedKeys): ?>
+                <?php include __DIR__ . '/sync-panel.php'; ?>
+            <?php else: ?>
+                <p class="text-sm">Guarda las credenciales y activa el proveedor para poder sincronizar.</p>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="card grid gap-4 p-6 sm:grid-cols-3">
             <h2 class="font-semibold sm:col-span-3">General</h2>
             <?= Form::select('is_active', 'Estado', ['1' => 'Activo', '0' => 'Inactivo']) ?>

@@ -33,6 +33,8 @@ final class Product
         public readonly ?string $note = null,
         /** El costo ya incluye IVA (según la configuración del proveedor) */
         public readonly bool $costIncludesVat = false,
+        /** Clave interna del proveedor cuando difiere del modelo del fabricante (ej. clave TVC) */
+        public readonly ?string $sku = null,
     ) {
     }
 
@@ -64,6 +66,7 @@ final class Product
             warranty: $a['warranty'] ?? null,
             note: $a['note'] ?? null,
             costIncludesVat: (bool) ($a['costIncludesVat'] ?? false),
+            sku: $a['sku'] ?? null,
         );
     }
 

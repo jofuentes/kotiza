@@ -34,6 +34,10 @@
         </dl>
         <?php endif; ?>
 
+        <?php if ($p['syncable'] && $row && $p['configured'] && $row['is_active']): ?>
+            <div class="mt-4"><?php $code = $p['code']; $sync = $p['sync']; include __DIR__ . '/sync-panel.php'; ?></div>
+        <?php endif; ?>
+
         <div x-cloak x-show="result" class="mt-4 rounded-lg border px-4 py-3 text-sm" :class="result?.ok ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200'">
             <p class="font-medium" x-text="result?.message"></p>
             <dl class="mt-1 grid grid-cols-2 gap-x-4 text-xs" x-show="result?.details">

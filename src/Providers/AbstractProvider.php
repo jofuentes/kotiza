@@ -21,6 +21,8 @@ abstract class AbstractProvider implements ProviderInterface
         protected ProviderAccount $account,
         protected ClientInterface $http,
         protected TokenStore $tokens,
+        /** Catálogo local (solo lo usan proveedores sincronizables) */
+        protected ?\App\Providers\Catalog\LocalCatalog $catalog = null,
     ) {
     }
 
@@ -87,7 +89,8 @@ abstract class AbstractProvider implements ProviderInterface
     // ---------- Peticiones ----------
 
     /** GET JSON asíncrono con Bearer; ante 401 renueva el token y reintenta una vez. */
-    protected function getJsonAsync(string $url, array $query = []): PromiseInterface
+    /** @param array|string $query arreglo o query string ya armado (para parámetros tipo ids[]=1&ids[]=2) */
+    protected function getJsonAsync(string $url, array|string $query = []): PromiseInterface
     {
         $send = function (bool $refresh) use ($url, $query): PromiseInterface {
             try {
@@ -118,7 +121,7 @@ abstract class AbstractProvider implements ProviderInterface
             );
     }
 
-    protected function getJson(string $url, array $query = []): mixed
+    protected function getJson(string $url, array|string $query = []): mixed
     {
         return $this->getJsonAsync($url, $query)->wait();
     }

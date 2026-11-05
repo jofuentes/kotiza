@@ -1,0 +1,47 @@
+{
+  "data": [
+    {
+      "tvc_model": "RBM065001",
+      "provider_model": "APC-AMC2-4WCF",
+      "tvc_id": 5464,
+      "name": "BOSCH A_APCAMC24WCF- AMC2 MODULO DE CONTROL DE ACCESO DE 1 A 4 PUERTAS\n / INTERFAZ WIEGAND / 8 ENTRADAS / 8 SALIDAS",
+      "hash_tags": ["SwitchD1", "MDIP"],
+      "type": "Valor",
+      "brand": "BOSCH",
+      "brand_id": 5,
+      "category_id": 76,
+      "category": "Tarjetas y Botones",
+      "category_breadcrumb": "Control de Acceso > Tarjetas y Botones",
+      "sat_key": "46171619",
+      "stage_id": 1,
+      "stage_name": "Activo",
+      "list_price": "47.6500",
+      "distributor_price": 24.67,
+      "volume_product_discount_options": [
+        { "quantity": 4, "currency": "USD", "price": "24.42" },
+        { "quantity": 20, "currency": "USD", "price": "24.30" }
+      ],
+      "applicable_discounts": { "promotion_discount": "17.00 %" },
+      "total_inventories": "500",
+      "media": {
+        "main_image": "/media/3168/AMC2.jpg",
+        "gallery": ["/media/3168/AMC2.jpg", "/media/3172/AMC2-diagram.jpg"],
+        "documents": ["/media/3174/Certificate.pdf"]
+      }
+    },
+    {
+      "tvc_model": "TVD123",
+      "provider_model": "DS-2CD2143G2-I",
+      "tvc_id": 148,
+      "name": "HIKVISION Cámara Domo IP 4 MP / Lente 2.8 mm / Exterior IP67",
+      "brand": "HIKVISION",
+      "category": "Domo",
+      "stage_name": "Descontinuado",
+      "list_price": "120.00",
+      "distributor_price": "80.00",
+      "total_inventories": "0",
+      "media": { "main_image": "https://cdn.tvc.mx/media/1/domo.jpg", "gallery": [] }
+    }
+  ],
+  "meta": { "current_page": 1, "last_page": 2, "per_page": 100, "total": 3 }
+}

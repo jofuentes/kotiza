@@ -1,0 +1,15 @@
+{
+  "data": [
+    {
+      "tvc_model": "SXI0410013",
+      "provider_model": "",
+      "tvc_id": 31071,
+      "name": "SAXXON Switch PoE 8 puertos",
+      "brand": "SAXXON",
+      "category": "Switches",
+      "list_price": "60.00",
+      "total_inventories": "12"
+    }
+  ],
+  "meta": { "current_page": 2, "last_page": 2, "per_page": 100, "total": 3 }
+}

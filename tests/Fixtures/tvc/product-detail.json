@@ -1,0 +1,25 @@
+{
+  "data": {
+    "tvc_model": "RBM065001",
+    "provider_model": "APC-AMC2-4WCF",
+    "tvc_id": 5464,
+    "name": "BOSCH AMC2 MODULO DE CONTROL DE ACCESO",
+    "brand": "BOSCH",
+    "category": "Tarjetas y Botones",
+    "sat_key": "46171619",
+    "stage_name": "Activo",
+    "list_price": "47.6500",
+    "distributor_price": "25.00",
+    "total_inventories": "500",
+    "inventory_detailed": [
+      { "name": "Matriz", "quantity": "250", "warehouse_id": 1 },
+      { "name": "Satelite", "quantity": "0", "warehouse_id": 2 },
+      { "name": "Guadalajara", "quantity": "100", "warehouse_id": 3 }
+    ],
+    "media": { "main_image": "/media/3168/AMC2.jpg", "gallery": [] },
+    "overviews": [
+      { "title": "Funci&oacute;n", "description": "<ul><li>Apertura de puerta</li></ul>", "order": 2 },
+      { "title": "Descripci&oacute;n", "description": "<p>Desc. del Producto.</p>", "order": 1 }
+    ]
+  }
+}

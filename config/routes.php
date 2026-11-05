@@ -62,6 +62,8 @@ return function (Router $r): void {
             $r->post('/proveedores/{code:[a-z0-9_]+}', [ProviderController::class, 'update']);
             $r->post('/proveedores/{code:[a-z0-9_]+}/probar', [ProviderController::class, 'test']);
             $r->get('/proveedores/{code:[a-z0-9_]+}/log', [ProviderController::class, 'logs']);
+            $r->post('/proveedores/{code:[a-z0-9_]+}/sincronizar', [ProviderController::class, 'sync']);
+            $r->get('/proveedores/{code:[a-z0-9_]+}/sincronizacion', [ProviderController::class, 'syncStatus']);
         });
     });
 };

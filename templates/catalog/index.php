@@ -35,7 +35,7 @@
                   :class="!s.ok ? (s.stale ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200') : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'"
                   :title="s.error || ''">
                 <strong x-text="s.name"></strong>:
-                <span x-show="s.ok" x-text="s.total + ' resultados' + (s.cached ? ' · caché de hace ' + ago(s.age_minutes) : ' · ' + s.ms + ' ms')"></span>
+                <span x-show="s.ok" x-text="s.total + ' resultados' + (s.synced_minutes !== null ? ' · catálogo de hace ' + ago(s.synced_minutes) : (s.cached ? ' · caché de hace ' + ago(s.age_minutes) : ' · ' + s.ms + ' ms'))"></span>
                 <span x-show="!s.ok" x-text="s.stale ? 'sin respuesta, mostrando datos de hace ' + ago(s.age_minutes) : s.error"></span>
             </span>
         </template>
@@ -79,7 +79,7 @@
                                 <span class="text-slate-400" x-text="p.category"></span>
                                 <span x-show="p.cheapest" class="rounded bg-emerald-600 px-1.5 py-0.5 font-medium text-white">Más barato</span>
                             </div>
-                            <button type="button" @click="open(p)" class="mt-0.5 block text-left font-mono text-sm font-semibold hover:underline" x-text="p.model"></button>
+                            <button type="button" @click="open(p)" class="mt-0.5 block text-left font-mono text-sm font-semibold hover:underline"><span x-text="p.model"></span><span x-show="p.sku" class="ml-2 text-xs font-normal text-slate-400" x-text="'Clave ' + p.providerName + ': ' + p.sku"></span></button>
                             <p class="line-clamp-2 text-sm text-slate-600 dark:text-slate-300" x-text="p.title"></p>
                             <p x-show="p.note" class="mt-1 text-xs text-amber-600 dark:text-amber-400" x-text="p.note"></p>
                         </div>

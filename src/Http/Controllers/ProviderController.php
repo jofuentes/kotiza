@@ -9,6 +9,9 @@ use App\Core\HttpException;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Providers\Catalog\DbLocalCatalog;
+use App\Providers\Catalog\SyncableProvider;
+use App\Providers\Catalog\SyncStatus;
 use App\Providers\FieldDefinition;
 use App\Providers\ProviderAccountRepository;
 use App\Providers\ProviderFactory;
@@ -37,6 +40,8 @@ final class ProviderController extends Controller
                 'description' => $class::description(),
                 'row' => $row,
                 'configured' => count($this->repo->storedCredentialKeys($row)) >= count(array_filter($class::credentialFields(), fn ($f) => $f->required)),
+                'syncable' => is_subclass_of($class, SyncableProvider::class),
+                'sync' => is_subclass_of($class, SyncableProvider::class) ? self::syncInfo($row) : null,
             ];
         }
         usort($providers, fn ($a, $b) => [($a['row']['priority'] ?? 999), $a['name']] <=> [($b['row']['priority'] ?? 999), $b['name']]);
@@ -139,6 +144,49 @@ final class ProviderController extends Controller
             'tested_at' => date('d/m/Y H:i')]);
     }
 
+    /** Pide sincronizar el catálogo local (lo ejecuta bin/scheduler.php en segundo plano) */
+    public function sync(Request $request): Response
+    {
+        [$code, $class] = $this->provider($request);
+        if (!is_subclass_of($class, SyncableProvider::class)) {
+            return Response::json(['error' => 'Este proveedor no usa catálogo local.'], 422);
+        }
+        $row = $this->repo->row(Auth::companyId(), $code);
+        if (!$row || !$row['is_active'] || !$this->repo->storedCredentialKeys($row)) {
+            return Response::json(['error' => 'Activa el proveedor y guarda sus credenciales antes de sincronizar.'], 422);
+        }
+        SyncStatus::request((int) $row['id']);
+        return $this->syncStatus($request);
+    }
+
+    public function syncStatus(Request $request): Response
+    {
+        [$code, $class] = $this->provider($request);
+        $row = $this->repo->row(Auth::companyId(), $code);
+        return Response::json(self::syncInfo($row));
+    }
+
+    /** Resumen de sincronización para la UI */
+    public static function syncInfo(?array $row): array
+    {
+        if (!$row) {
+            return ['status' => null, 'count' => 0];
+        }
+        $s = SyncStatus::get((int) $row['id']);
+        $catalog = new DbLocalCatalog();
+        $at = $catalog->lastSyncedAt((int) $row['id']);
+        return [
+            'status' => $s['status'] ?? null,
+            'message' => $s['message'] ?? null,
+            'page' => (int) ($s['page'] ?? 0),
+            'last_page' => (int) ($s['last_page'] ?? 0),
+            'items' => (int) ($s['items'] ?? 0),
+            'finished_at' => !empty($s['finished_at']) ? date('d/m/Y H:i', strtotime($s['finished_at'])) : null,
+            'count' => $catalog->count((int) $row['id']),
+            'synced_at' => $at ? date('d/m/Y H:i', $at) : null,
+        ];
+    }
+
     public function logs(Request $request): Response
     {
         [$code, $class] = $this->provider($request);
@@ -189,6 +237,8 @@ final class ProviderController extends Controller
             'old' => $old,
             'errors' => $errors,
             'config' => method_exists($class, 'config') ? $class::config() : [],
+            'syncable' => is_subclass_of($class, SyncableProvider::class),
+            'sync' => is_subclass_of($class, SyncableProvider::class) ? self::syncInfo($row) : null,
         ]);
     }
 

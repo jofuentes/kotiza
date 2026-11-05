@@ -17,6 +17,7 @@ final class ProviderFactory
         private TokenStore $tokens,
         private CallLogger $logger,
         private ?\Closure $handler = null,
+        private ?\App\Providers\Catalog\LocalCatalog $catalog = null,
     ) {
     }
 
@@ -30,6 +31,6 @@ final class ProviderFactory
         $class = ProviderRegistry::get($account->providerCode)
             ?? throw new ProviderException("El conector «{$account->providerCode}» no está instalado.");
         $http = HttpClientFactory::make($account->id, $this->logger, $this->handler);
-        return new $class($account, $http, $this->tokens);
+        return new $class($account, $http, $this->tokens, $this->catalog ?? new \App\Providers\Catalog\DbLocalCatalog());
     }
 }
