@@ -32,6 +32,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      # El primer arranque inicializa la base de datos y en equipos modestos tarda varios minutos
+      start_period: 300s
 
   # Opcional: docker compose --profile tools up -d
   adminer:
