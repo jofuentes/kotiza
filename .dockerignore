@@ -1,0 +1,7 @@
+.git
+.env
+vendor
+storage/*/*
+!storage/*/.gitkeep
+public/assets/app.css
+.phpunit.cache

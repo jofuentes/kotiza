@@ -1,0 +1,10 @@
+/vendor/
+.env
+/storage/**/*
+!/storage/**/
+!/storage/**/.gitkeep
+/public/assets/app.css
+.phpunit.cache/
+.idea/
+.vscode/
+/public/assets/alpine.min.js
