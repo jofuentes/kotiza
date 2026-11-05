@@ -3,7 +3,8 @@ name: cotizador
 services:
   app:
     build: .
-    image: cotizador:latest
+    # Nombre de imagen por instancia (varias instancias en el mismo equipo)
+    image: ${APP_IMAGE:-cotizador:latest}
     restart: unless-stopped
     env_file: .env
     ports:

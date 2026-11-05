@@ -73,9 +73,32 @@ final class Request
         return $this->server[$key] ?? null;
     }
 
+    /**
+     * IP del visitante. Detrás de un proxy inverso (ej. Nginx Proxy Manager) la conexión llega
+     * desde una IP privada: solo en ese caso se confía en X-Real-IP / X-Forwarded-For.
+     */
     public function ip(): string
     {
-        return (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        $remote = (string) ($this->server['REMOTE_ADDR'] ?? '0.0.0.0');
+        if (!self::isPrivateIp($remote)) {
+            return $remote;
+        }
+        $candidates = array_merge(
+            [(string) $this->header('X-Real-IP')],
+            array_map('trim', explode(',', (string) $this->header('X-Forwarded-For')))
+        );
+        foreach ($candidates as $ip) {
+            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+        return $remote;
+    }
+
+    public static function isPrivateIp(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false
+            && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
     }
 
     public function wantsJson(): bool
