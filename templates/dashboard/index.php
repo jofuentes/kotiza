@@ -24,6 +24,7 @@
         <li><a href="<?= e(url('/cotizaciones/' . (int) $qt['id'])) ?>" class="flex items-center gap-4 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
             <span class="w-36 font-mono font-medium"><?= e($qt['folio']) ?><?= $qt['version'] > 1 ? ' v' . (int) $qt['version'] : '' ?></span>
             <span class="min-w-0 flex-1 truncate"><?= e($qt['client_name'] ?? 'Sin cliente') ?><?= $qt['title'] ? ' · ' . e($qt['title']) : '' ?></span>
+            <?php if ($qt['shared_permission']): ?><span class="rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-800 dark:bg-violet-950 dark:text-violet-300">Compartida contigo</span><?php endif; ?>
             <?php $st = $qt['status']; include __DIR__ . '/../quotes/status-badge.php'; ?>
             <span class="w-36 text-right font-medium">$<?= number_format((float) $qt['total'], 2) ?> <?= e($qt['currency']) ?></span>
         </a></li>

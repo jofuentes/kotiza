@@ -10,6 +10,7 @@ $cfg = [
         'search' => url('/productos/buscar'),
         'approve' => url('/cotizaciones/' . $state['id'] . '/aprobar'),
         'pdf' => url('/cotizaciones/' . $state['id'] . '/pdf'),
+        'share' => url('/cotizaciones/' . $state['id'] . '/compartir'),
     ],
 ];
 $st = $state['status'];
@@ -25,20 +26,44 @@ $st = $state['status'];
         <div class="ml-auto flex items-center gap-3">
             <span class="text-xs" :class="dirty ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'" x-show="state.editable"
                   x-text="saving ? 'Guardando…' : (dirty ? 'Cambios sin guardar' : 'Guardado')"></span>
-            <?php if ($state['editable']): ?>
+            <?php if ($state['can_manage']): ?>
+            <button type="button" class="btn btn-secondary" @click="openShare()">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 0 0-5.4-3.7M9 20H4v-2a4 4 0 0 1 5.4-3.7M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/></svg>
+                Compartir<span x-show="sharedCount" x-text="' (' + sharedCount + ')'"></span>
+            </button>
+            <?php endif; ?>
+            <?php if ($state['can_manage'] && $state['status'] === 'draft'): ?>
             <form method="post" action="<?= e(url('/cotizaciones/' . $state['id'] . '/eliminar')) ?>" onsubmit="return confirm('¿Eliminar este borrador? No se puede deshacer.')">
                 <?= csrf_field() ?><button class="btn btn-secondary text-red-600">Eliminar</button>
             </form>
-            <button type="button" class="btn btn-primary" @click="save()" :disabled="saving || !dirty" title="Ctrl+S">Guardar</button>
+            <?php endif; ?>
+            <?php if ($state['editable']): ?>
+            <button type="button" class="btn btn-primary" @click="save()" :disabled="saving || !dirty || conflict" title="Ctrl+S">Guardar</button>
             <?php endif; ?>
         </div>
     </div>
 
-    <?php if (!$state['editable']): ?>
+    <p class="-mt-2 mb-4 text-xs text-slate-500 dark:text-slate-400">
+        Creada por <?= e($state['seller']) ?>
+        <span x-show="state.updated_by" x-text="' · última edición: ' + state.updated_by + ' (' + new Date(state.updated_at.replace(' ', 'T')).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) + ')'"></span>
+    </p>
+
+    <?php if ($state['access'] === 'edit' || $state['access'] === 'view'): ?>
+    <div class="mb-4 rounded-lg border border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-800 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200">
+        <?= e($state['seller']) ?> compartió esta cotización contigo
+        <?= $state['access'] === 'edit' ? 'para que puedas revisarla y modificarla.' : 'para revisión (solo lectura). Puedes ver la vista previa y descargar el PDF.' ?>
+    </div>
+    <?php elseif ($state['status'] !== 'draft'): ?>
     <div class="mb-4 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200">
         Esta cotización ya no es un borrador, por eso está en modo de solo lectura.
     </div>
     <?php endif; ?>
+
+    <!-- Conflicto: alguien más guardó -->
+    <div x-cloak x-show="conflict" class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+        <span class="flex-1" x-text="conflict"></span>
+        <button type="button" class="btn btn-primary" @click="savedJson = JSON.stringify(payload()); location.reload()">Recargar</button>
+    </div>
 
     <!-- Aprobación de descuentos -->
     <div x-cloak x-show="state.approval_status === 'pending' || (needsApproval && !state.is_admin)"
@@ -309,6 +334,32 @@ $st = $state['status'];
                 <p class="text-xs text-red-600" x-show="lowMargin(totals.margin)" x-text="'Por debajo del margen mínimo (' + state.min_margin + ' %).'"></p>
             </div>
         </aside>
+    </div>
+
+    <!-- Compartir -->
+    <div x-cloak x-show="shareOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @keydown.escape.window="shareOpen = false" @click.self="shareOpen = false">
+        <div class="card w-full max-w-lg p-6">
+            <h2 class="text-lg font-semibold">Compartir cotización</h2>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Elige qué compañeros pueden verla o modificarla. Los administradores siempre tienen acceso total y son los únicos que aprueban.</p>
+            <ul class="mt-4 max-h-80 divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
+                <template x-for="m in shareDraft" :key="m.user_id">
+                    <li class="flex items-center gap-3 py-2.5">
+                        <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold dark:bg-slate-700" x-text="m.name.charAt(0).toUpperCase()"></span>
+                        <div class="min-w-0 flex-1 text-sm"><div class="font-medium" x-text="m.name"></div><div class="truncate text-xs text-slate-500" x-text="m.email"></div></div>
+                        <select class="input w-36 py-1 text-sm" x-model="m.permission">
+                            <option value="none">Sin acceso</option>
+                            <option value="view">Puede ver</option>
+                            <option value="edit">Puede editar</option>
+                        </select>
+                    </li>
+                </template>
+            </ul>
+            <p x-show="!shareDraft.length" class="py-6 text-center text-sm text-slate-500">No hay otros vendedores activos en la empresa.</p>
+            <div class="mt-5 flex justify-end gap-2">
+                <button type="button" class="btn btn-secondary" @click="shareOpen = false">Cancelar</button>
+                <button type="button" class="btn btn-primary" @click="saveShare()" x-show="shareDraft.length">Guardar</button>
+            </div>
+        </div>
     </div>
 
     <!-- Vista previa del PDF -->

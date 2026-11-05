@@ -20,9 +20,13 @@ final class DashboardController extends Controller
                FROM quotes WHERE company_id = ?{$mine}", [$cid]
         );
         $recent = Database::fetchAll(
-            "SELECT q.id, q.folio, q.version, q.status, q.title, q.currency, q.total, q.updated_at, c.name client_name
+            'SELECT q.id, q.folio, q.version, q.status, q.title, q.currency, q.total, q.updated_at, c.name client_name,
+                    qs.permission AS shared_permission
                FROM quotes q LEFT JOIN clients c ON c.id = q.client_id
-              WHERE q.company_id = ?" . str_replace('user_id', 'q.user_id', $mine) . ' ORDER BY q.updated_at DESC LIMIT 8', [$cid]
+               LEFT JOIN quote_shares qs ON qs.quote_id = q.id AND qs.user_id = ?
+              WHERE q.company_id = ?' . (Auth::isAdmin() ? '' : ' AND (q.user_id = ? OR qs.user_id IS NOT NULL)')
+            . ' ORDER BY q.updated_at DESC LIMIT 8',
+            Auth::isAdmin() ? [Auth::id(), $cid] : [Auth::id(), $cid, Auth::id()]
         );
         return $this->view('dashboard/index', [
             'stats' => [

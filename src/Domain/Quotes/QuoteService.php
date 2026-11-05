@@ -35,19 +35,40 @@ final class QuoteService
 
     // ---------- Lectura y permisos ----------
 
-    /** Cotización de la empresa activa; un vendedor solo accede a las suyas */
+    /**
+     * Cotización de la empresa activa con el nivel de acceso del usuario en '_access':
+     *   admin (todo) · owner (creador) · edit / view (compartida con él). Sin acceso → 404.
+     */
     public function find(int $id): array
     {
         $q = Database::fetch('SELECT * FROM quotes WHERE id = ? AND company_id = ?', [$id, $this->company['id']]);
-        if (!$q || (!Auth::isAdmin() && (int) $q['user_id'] !== Auth::id())) {
+        if (!$q) {
             throw new HttpException(404);
+        }
+        if (Auth::isAdmin()) {
+            $q['_access'] = 'admin';
+        } elseif ((int) $q['user_id'] === Auth::id()) {
+            $q['_access'] = 'owner';
+        } else {
+            $perm = Database::value('SELECT permission FROM quote_shares WHERE quote_id = ? AND user_id = ?', [$id, Auth::id()]);
+            if (!$perm) {
+                throw new HttpException(404);
+            }
+            $q['_access'] = (string) $perm;
         }
         return $q;
     }
 
-    public static function isEditable(array $quote): bool
+    /** Puede modificarla: borrador y acceso de administrador, creador o compartida con permiso de edición */
+    public static function canEdit(array $quote): bool
     {
-        return $quote['status'] === 'draft';
+        return $quote['status'] === 'draft' && in_array($quote['_access'] ?? null, ['admin', 'owner', 'edit'], true);
+    }
+
+    /** Puede compartirla y eliminarla: administrador o creador */
+    public static function canManage(array $quote): bool
+    {
+        return in_array($quote['_access'] ?? null, ['admin', 'owner'], true);
     }
 
     public function canSeeCost(): bool
@@ -141,6 +162,7 @@ final class QuoteService
         ]);
         $this->recalculate((int) $quote['id']);
         $this->updateApproval((int) $quote['id']);
+        Database::query('UPDATE quotes SET lock_version = lock_version + 1, updated_by = ? WHERE id = ?', [Auth::id(), $quote['id']]);
         $row = Database::fetch('SELECT * FROM quote_items WHERE id = ?', [$itemId]);
         return ['item' => $this->itemState($row, $this->find((int) $quote['id'])), 'stale' => $r['stale'], 'warning' => $r['stale'] ? $r['error'] : null];
     }
@@ -184,6 +206,7 @@ final class QuoteService
     {
         $this->assertEditable($quote);
         $qid = (int) $quote['id'];
+        $baseVersion = isset($in['lock_version']) ? (int) $in['lock_version'] : null;
 
         $header = [
             'title' => trim((string) ($in['title'] ?? '')),
@@ -289,7 +312,15 @@ final class QuoteService
             throw new ValidationException(['exchange_rate' => 'Captura el tipo de cambio: hay partidas en otra moneda.']);
         }
 
-        Database::transaction(function () use ($qid, $quote, $header, $sections, $items, $existingSections, $existingItems, $newCurrency, $newRate, $oldRate, $currencyChanged, $rateChanged, $pdfOptions) {
+        Database::transaction(function () use ($qid, $quote, $header, $sections, $items, $existingSections, $existingItems, $newCurrency, $newRate, $oldRate, $currencyChanged, $rateChanged, $pdfOptions, $baseVersion) {
+            // Control de cambios simultáneos: solo guarda si nadie más guardó desde que se abrió
+            $bumped = Database::query(
+                'UPDATE quotes SET lock_version = lock_version + 1, updated_by = ? WHERE id = ?' . ($baseVersion !== null ? ' AND lock_version = ?' : ''),
+                array_merge([Auth::id(), $qid], $baseVersion !== null ? [$baseVersion] : [])
+            )->rowCount();
+            if ($bumped === 0) {
+                throw new ConflictException($this->conflictMessage($qid));
+            }
             Database::query('UPDATE quotes SET pdf_options = ? WHERE id = ?', [json_encode($pdfOptions), $qid]);
             $rateLabel = $quote['exchange_source'];
             if ($rateChanged) {
@@ -465,8 +496,57 @@ final class QuoteService
         if (!Auth::isAdmin()) {
             throw new \DomainException('Solo un administrador puede aprobar descuentos.');
         }
+        if ($quote['approval_status'] !== 'pending') {
+            throw new \DomainException('Esta cotización no tiene descuentos pendientes de aprobación.');
+        }
         Database::query("UPDATE quotes SET approval_status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?",
             [Auth::id(), $quote['id']]);
+    }
+
+    private function conflictMessage(int $quoteId): string
+    {
+        $who = Database::fetch('SELECT u.name FROM quotes q JOIN users u ON u.id = q.updated_by WHERE q.id = ?', [$quoteId]);
+        return ($who ? $who['name'] : 'Otra persona') . ' guardó cambios en esta cotización mientras la editabas. '
+            . 'Recarga para ver la versión actual (tus últimos cambios no se guardaron).';
+    }
+
+    // ---------- Compartir ----------
+
+    /** Compañeros con quienes se puede compartir (no administradores, que ya ven todo) y su permiso actual */
+    public function shareMembers(array $quote): array
+    {
+        return array_map(fn ($r) => [
+            'user_id' => (int) $r['id'],
+            'name' => $r['display_name'] ?: $r['name'],
+            'email' => $r['email'],
+            'permission' => $r['permission'] ?? 'none',
+        ], Database::fetchAll(
+            "SELECT u.id, u.name, u.email, cu.display_name, qs.permission
+               FROM company_user cu JOIN users u ON u.id = cu.user_id
+               LEFT JOIN quote_shares qs ON qs.quote_id = ? AND qs.user_id = u.id
+              WHERE cu.company_id = ? AND cu.is_active = 1 AND u.is_active = 1 AND cu.role <> 'admin' AND u.id <> ?
+           ORDER BY u.name",
+            [$quote['id'], $quote['company_id'], $quote['user_id']]
+        ));
+    }
+
+    /** @param array<int, array{user_id:int, permission:string}> $shares permission: none|view|edit */
+    public function setShares(array $quote, array $shares): void
+    {
+        if (!self::canManage($quote)) {
+            throw new \DomainException('Solo el creador o un administrador pueden compartir esta cotización.');
+        }
+        $allowed = array_column($this->shareMembers($quote), 'user_id');
+        Database::transaction(function () use ($quote, $shares, $allowed) {
+            Database::query('DELETE FROM quote_shares WHERE quote_id = ?', [$quote['id']]);
+            foreach ($shares as $s) {
+                $uid = (int) ($s['user_id'] ?? 0);
+                $perm = (string) ($s['permission'] ?? 'none');
+                if (in_array($uid, $allowed, true) && in_array($perm, ['view', 'edit'], true)) {
+                    Database::insert('quote_shares', ['quote_id' => $quote['id'], 'user_id' => $uid, 'permission' => $perm, 'shared_by' => Auth::id()]);
+                }
+            }
+        });
     }
 
     private function needsRate(array $items, string $currency): bool
@@ -545,7 +625,12 @@ final class QuoteService
             'folio' => $quote['folio'],
             'version' => (int) $quote['version'],
             'status' => $quote['status'],
-            'editable' => self::isEditable($quote),
+            'editable' => self::canEdit($quote),
+            'access' => $quote['_access'] ?? null,
+            'can_manage' => self::canManage($quote),
+            'shares' => self::canManage($quote) ? $this->shareMembers($quote) : [],
+            'lock_version' => (int) $quote['lock_version'],
+            'updated_by' => $this->userName($quote['updated_by'] ? (int) $quote['updated_by'] : null),
             'title' => (string) $quote['title'],
             'client_id' => $quote['client_id'] !== null ? (int) $quote['client_id'] : null,
             'client' => $client ? array_intersect_key($client, array_flip(['id', 'name', 'company_name', 'rfc', 'email', 'phone'])) : null,
@@ -637,10 +722,18 @@ final class QuoteService
         );
     }
 
+    private function userName(?int $id): ?string
+    {
+        return $id ? (Database::value('SELECT name FROM users WHERE id = ?', [$id]) ?: null) : null;
+    }
+
     private function assertEditable(array $quote): void
     {
-        if (!self::isEditable($quote)) {
+        if ($quote['status'] !== 'draft') {
             throw new \DomainException('Solo se pueden editar cotizaciones en borrador.');
+        }
+        if (!self::canEdit($quote)) {
+            throw new \DomainException('Tienes acceso de solo lectura a esta cotización.');
         }
     }
 }

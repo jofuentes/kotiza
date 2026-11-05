@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Domain\Quotes\QuoteService;
+use App\Domain\Quotes\ConflictException;
 use App\Domain\Quotes\ValidationException;
 use App\Pdf\QuotePdfRenderer;
 use App\Pricing\ExchangeRateService;
@@ -25,10 +26,17 @@ final class QuoteController extends Controller
     {
         $q = $request->str('q');
         $status = $request->str('status');
+        $view = $request->str('vista');
         $where = ['q.company_id = :cid'];
-        $params = ['cid' => Auth::companyId()];
-        if (!Auth::isAdmin()) {
+        $params = ['cid' => Auth::companyId(), 'me' => Auth::id()];
+        // Vendedores: las suyas y las compartidas con ellos. Administradores: todas.
+        if ($view === 'mias') {
             $where[] = 'q.user_id = :uid';
+            $params['uid'] = Auth::id();
+        } elseif ($view === 'compartidas') {
+            $where[] = 'qs.user_id IS NOT NULL';
+        } elseif (!Auth::isAdmin()) {
+            $where[] = '(q.user_id = :uid OR qs.user_id IS NOT NULL)';
             $params['uid'] = Auth::id();
         }
         if (isset(self::STATUSES[$status])) {
@@ -41,14 +49,17 @@ final class QuoteController extends Controller
             $params += ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like];
         }
         $quotes = Database::fetchAll(
-            'SELECT q.id, q.folio, q.version, q.status, q.title, q.issue_date, q.valid_until, q.currency, q.total,
-                    c.name AS client_name, c.company_name AS client_company, u.name AS user_name
+            'SELECT q.id, q.folio, q.version, q.status, q.title, q.issue_date, q.valid_until, q.currency, q.total, q.user_id,
+                    q.approval_status, c.name AS client_name, c.company_name AS client_company, u.name AS user_name,
+                    qs.permission AS shared_permission,
+                    (SELECT COUNT(*) FROM quote_shares x WHERE x.quote_id = q.id) AS shares_count
                FROM quotes q LEFT JOIN clients c ON c.id = q.client_id JOIN users u ON u.id = q.user_id
+               LEFT JOIN quote_shares qs ON qs.quote_id = q.id AND qs.user_id = :me
               WHERE ' . implode(' AND ', $where) . ' ORDER BY q.id DESC LIMIT 300',
             $params
         );
         return $this->view('quotes/index', ['pageTitle' => 'Cotizaciones', 'quotes' => $quotes, 'q' => $q,
-            'status' => $status, 'statuses' => self::STATUSES]);
+            'status' => $status, 'statuses' => self::STATUSES, 'vista' => $view]);
     }
 
     public function create(Request $request): Response
@@ -95,6 +106,8 @@ final class QuoteController extends Controller
         $quote = $svc->find((int) $request->params['id']);
         try {
             $svc->save($quote, $request->all());
+        } catch (ConflictException $e) {
+            return Response::json(['error' => $e->getMessage(), 'conflict' => true], 409);
         } catch (ValidationException $e) {
             return Response::json(['error' => $e->getMessage(), 'errors' => $e->errors], 422);
         } catch (\DomainException $e) {
@@ -159,11 +172,28 @@ final class QuoteController extends Controller
         ]);
     }
 
+    /** Compartir con compañeros: [{user_id, permission: none|view|edit}] */
+    public function share(Request $request): Response
+    {
+        $svc = QuoteService::forCurrentCompany();
+        $quote = $svc->find((int) $request->params['id']);
+        try {
+            $svc->setShares($quote, array_values(array_filter((array) $request->input('shares', []), 'is_array')));
+        } catch (\DomainException $e) {
+            return Response::json(['error' => $e->getMessage()], 403);
+        }
+        return Response::json(['state' => $svc->editorState($svc->find((int) $quote['id']))]);
+    }
+
     public function approve(Request $request): Response
     {
         $svc = QuoteService::forCurrentCompany();
         $quote = $svc->find((int) $request->params['id']);
-        $svc->approve($quote);
+        try {
+            $svc->approve($quote);
+        } catch (\DomainException $e) {
+            return Response::json(['error' => $e->getMessage()], 422);
+        }
         return Response::json(['state' => $svc->editorState($svc->find((int) $quote['id']))]);
     }
 
@@ -171,6 +201,10 @@ final class QuoteController extends Controller
     {
         $svc = QuoteService::forCurrentCompany();
         $quote = $svc->find((int) $request->params['id']);
+        if (!QuoteService::canManage($quote)) {
+            Session::flash('error', 'Solo el creador o un administrador pueden eliminar esta cotización.');
+            return $this->redirect('/cotizaciones/' . $quote['id']);
+        }
         if ($quote['status'] !== 'draft') {
             Session::flash('error', 'Solo se pueden eliminar borradores.');
             return $this->redirect('/cotizaciones/' . $quote['id']);

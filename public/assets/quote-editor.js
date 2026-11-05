@@ -18,6 +18,9 @@
             units: cfg.units,
             urls: cfg.urls,
             saving: false,
+            conflict: null,
+            shareOpen: false,
+            shareDraft: [],
             savedJson: '',
             errors: {},
             itemErrors: {},
@@ -52,7 +55,12 @@
             },
 
             // ---------- Estado ----------
-            get dirty() { return this.state.editable && JSON.stringify(this.payload()) !== this.savedJson; },
+            get dirty() {
+                if (!this.state.editable) return false;
+                const { lock_version, ...a } = this.payload();
+                const { lock_version: _, ...b } = JSON.parse(this.savedJson || '{}');
+                return JSON.stringify(a) !== JSON.stringify(b);
+            },
 
             payload() {
                 const s = this.state;
@@ -60,7 +68,7 @@
                     title: s.title, client_id: s.client_id, issue_date: s.issue_date, valid_until: s.valid_until,
                     currency: s.currency, exchange_rate: s.exchange_rate, vat_rate: s.vat_rate,
                     global_discount_type: s.global_discount_type, global_discount_value: s.global_discount_value,
-                    notes: s.notes, terms: s.terms, pdf_options: s.pdf_options,
+                    notes: s.notes, terms: s.terms, pdf_options: s.pdf_options, lock_version: s.lock_version,
                     sections: s.sections.map(x => ({ key: x.key, title: x.title })),
                     items: s.items.map(it => ({
                         id: it.id, key: it.key, section_key: it.section_key, description: it.description, unit: it.unit,
@@ -251,7 +259,7 @@
 
             // ---------- Guardar ----------
             async save(silent = false) {
-                if (this.saving || !this.state.editable) return;
+                if (this.saving || !this.state.editable || this.conflict) return;
                 this.normalize();
                 this.saving = true; this.errors = {}; this.itemErrors = {};
                 const sent = this.state.items.map(it => it.key);
@@ -262,6 +270,10 @@
                         body: JSON.stringify(this.payload()),
                     });
                     const data = await res.json();
+                    if (res.status === 409) {
+                        this.conflict = data.error;
+                        return;
+                    }
                     if (!res.ok) {
                         this.errors = data.errors || {};
                         Object.entries(this.errors).forEach(([k, msg]) => {
@@ -304,6 +316,26 @@
                 await this.save(true);
                 this.flash('success', `Tipo de cambio actualizado: ${data.rate} (${data.source}).`);
             },
+
+            // ---------- Compartir ----------
+            openShare() {
+                this.shareDraft = this.state.shares.map(s => Object.assign({}, s));
+                this.shareOpen = true;
+            },
+            async saveShare() {
+                const res = await fetch(this.urls.share, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-Token': csrfToken() },
+                    body: JSON.stringify({ shares: this.shareDraft.map(s => ({ user_id: s.user_id, permission: s.permission })) }),
+                });
+                const data = await res.json();
+                if (!res.ok) { this.flash('error', data.error || 'No se pudo compartir.'); return; }
+                this.state.shares = data.state.shares;
+                this.shareOpen = false;
+                const n = this.state.shares.filter(s => s.permission !== 'none').length;
+                this.flash('success', n ? `Compartida con ${n} compañero${n > 1 ? 's' : ''}.` : 'Ya no está compartida.');
+            },
+            get sharedCount() { return (this.state.shares || []).filter(s => s.permission !== 'none').length; },
 
             // ---------- PDF ----------
             async openPreview() {
