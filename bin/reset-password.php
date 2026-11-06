@@ -51,6 +51,7 @@ if (stream_isatty(STDIN) && $read('Repite la contraseña: ') !== $password) {
 Database::query('UPDATE users SET password_hash = ?, is_active = 1 WHERE id = ?', [
     password_hash($password, PASSWORD_DEFAULT), $user['id'],
 ]);
+Database::query('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [$user['id']]);
 Database::query('DELETE FROM login_attempts WHERE email = ?', [$email]);
 
 echo "Contraseña actualizada para {$user['name']} <{$email}>.\n";

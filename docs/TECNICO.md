@@ -8,13 +8,15 @@ Aplicación web self-hosted para generar cotizaciones profesionales a partir del
 
 **Stack:** PHP 8.3 (sin framework; FastRoute + PDO), MariaDB 11, Tailwind + Alpine.js, mPDF, Docker.
 
+Para el uso de la aplicación, consulta el [manual para usuarios y administradores](MANUAL.md).
+
 ---
 
 ## Contenido
 
-1. [Instalación local (Docker)](#instalación-local-docker)
-2. [Instalación en ZimaOS](#instalación-en-zimaos)
-3. [Primer arranque](#primer-arranque)
+1. [Instalación](#instalación)
+2. [Primer arranque](#primer-arranque)
+3. [Correo para recuperar contraseñas](#correo-para-recuperar-contraseñas)
 4. [Proveedores y credenciales](#proveedores-y-credenciales)
 5. [Precios](#precios)
 6. [Cotizaciones: flujo, colaboración y PDF](#cotizaciones-flujo-colaboración-y-pdf)
@@ -24,9 +26,21 @@ Aplicación web self-hosted para generar cotizaciones profesionales a partir del
 
 ---
 
-## Instalación local (Docker)
+## Instalación
 
-Requisitos: Docker con Compose.
+Kotiza corre en Docker y funciona en cualquier servidor Linux de 64 bits (x86-64 o ARM64). **Recomendamos Ubuntu Server LTS.**
+
+### 1. Instala Docker
+
+Sigue la [guía oficial de Docker para Ubuntu](https://docs.docker.com/engine/install/ubuntu/), que también instala Docker Compose. Comprueba que quedó listo:
+
+```bash
+docker compose version
+```
+
+Instala también Git si no lo tienes: `sudo apt install -y git`.
+
+### 2. Descarga y configura Kotiza
 
 ```bash
 git clone https://github.com/jofuentes/kotiza.git
@@ -34,39 +48,33 @@ cd kotiza
 cp .env.example .env
 ```
 
-Edita `.env` (es lo único que se configura fuera de la interfaz):
+Edita `.env`, que es lo único que se configura fuera de la interfaz:
 
 | Variable | Qué es |
 |---|---|
-| `APP_URL` | URL con la que se accede (ej. `http://192.168.1.50:8080`) |
-| `APP_PORT` | Puerto del host |
+| `APP_URL` | URL con la que se accede, por ejemplo `http://192.168.1.50:8080`. También se usa en los enlaces de recuperación de contraseña |
+| `APP_PORT` | Puerto del servidor |
 | `APP_KEY` | Clave de cifrado de credenciales. Genérala con `openssl rand -base64 32`. **No la cambies después** o las credenciales guardadas no se podrán descifrar |
 | `DB_PASS`, `DB_ROOT_PASSWORD` | Contraseñas de MariaDB (cámbialas) |
 | `TZ` | Zona horaria (por defecto `America/Mexico_City`) |
 
-```bash
-docker compose up -d --build
-```
-
-Abre `APP_URL`. Las migraciones de base de datos se aplican solas al arrancar.
-
-Adminer (opcional, para ver la base de datos): `docker compose --profile tools up -d` → puerto `8081`.
-
-## Instalación en ZimaOS
-
-ZimaOS ejecuta Docker, así que se instala igual que en local, desde una terminal SSH del equipo:
+### 3. Inicia Kotiza
 
 ```bash
-ssh usuario@IP-DE-ZIMA
-git clone https://github.com/jofuentes/kotiza.git /DATA/AppData/cotizador
-cd /DATA/AppData/cotizador
-cp .env.example .env && nano .env      # APP_URL=http://IP-DE-ZIMA:8080, APP_KEY, contraseñas
-docker compose up -d --build
+sudo docker compose up -d --build
 ```
 
-- La imagen se compila para la arquitectura del equipo (x86-64 o ARM64).
-- Los datos viven en dos volúmenes persistentes: `cotizador_db_data` (base de datos) y `cotizador_storage` (logos, membretes, firmas, PDFs, caché).
-- Después de instalar, la app aparece en el panel de ZimaOS como contenedor y se puede abrir desde ahí.
+Abre `APP_URL` y sigue el asistente. Las migraciones de la base de datos se aplican solas al arrancar. La imagen se compila para la arquitectura del equipo, y el primer arranque puede tardar varios minutos en equipos modestos.
+
+Los datos viven en dos volúmenes persistentes: `cotizador_db_data` (base de datos) y `cotizador_storage` (logos, membretes, firmas, PDF y caché). **No cambies `name: cotizador` en `docker-compose.yml`**: Docker crearía volúmenes nuevos y vacíos.
+
+Adminer (opcional, para ver la base de datos): `docker compose --profile tools up -d`, en el puerto `8081`.
+
+### Otros sistemas compatibles
+
+Si prefieres un NAS o un servidor doméstico, puedes usar otro sistema con Docker, como **ZimaOS**, **TrueNAS SCALE** u **OpenMediaVault** (con su complemento de Compose). Necesitas acceso por terminal para clonar el repositorio y ejecutar `docker compose up -d --build`, porque la imagen se compila en el equipo. Guarda el proyecto en una carpeta persistente, no en una temporal.
+
+Los asistentes de aplicaciones de estos sistemas pueden no compilar imágenes, así que conviene usar la terminal. Los pasos varían según el sistema y su versión; consulta su documentación.
 
 ## Primer arranque
 
@@ -76,7 +84,20 @@ docker compose up -d --build
 4. **Proveedores**: captura tus credenciales (siguiente sección).
 5. **Precios**: elige cómo se calcula el precio de venta.
 
-Contraseña olvidada: `docker compose exec app php bin/reset-password.php correo@empresa.com`
+## Correo para recuperar contraseñas
+
+En **Correo**, un administrador de la primera empresa captura una cuenta de Gmail, el nombre del remitente y una [contraseña de aplicación](https://myaccount.google.com/apppasswords), que requiere la verificación en dos pasos. Kotiza comprueba la conexión con `smtp.gmail.com:465` antes de guardarla y la cifra con `APP_KEY`.
+
+- **Sin cuenta configurada**, todo funciona igual: la pantalla de acceso no ofrece el enlace y pide acudir al administrador.
+- **Solo administradores de la primera empresa:** la cuenta afecta a toda la instalación, y quien la controla podría interceptar enlaces de usuarios de otras empresas.
+- **Enlaces:** son de un solo uso, vencen a los 30 minutos y solo se guarda su hash. Al cambiar la contraseña se cierran las sesiones abiertas con la anterior.
+- **Envío:** `bin/send-password-resets.php` corre cada 15 segundos en el contenedor, para que el tiempo de respuesta no revele si un correo existe. Los errores aparecen en `docker compose logs app`.
+- **Límites:** 3 solicitudes por usuario y 10 por dirección IP cada hora.
+- **Otro servidor SMTP:** define `MAIL_HOST`, `MAIL_PORT` y `MAIL_ENCRYPTION` (`ssl`, `tls` o `none`) en `.env`.
+
+Por ahora este es el único correo que envía Kotiza; las cotizaciones se descargan y se entregan por tu medio habitual.
+
+**Contraseña olvidada sin correo configurado:** `docker compose exec app php bin/reset-password.php correo@empresa.com`
 
 ## Proveedores y credenciales
 

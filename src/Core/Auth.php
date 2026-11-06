@@ -13,6 +13,7 @@ final class Auth
     {
         Session::regenerate();
         Session::set('user_id', (int) $user['id']);
+        Session::set('session_version', (int) ($user['session_version'] ?? 0));
         Session::forget('company_id');
         self::$user = null;
         self::$membership = null;
@@ -35,12 +36,26 @@ final class Auth
     public static function user(): ?array
     {
         if (self::$user === null && self::id()) {
-            self::$user = Database::fetch(
-                'SELECT id, name, email, is_active, last_login_at FROM users WHERE id = ? AND is_active = 1',
+            $user = Database::fetch(
+                'SELECT id, name, email, is_active, last_login_at, session_version FROM users WHERE id = ? AND is_active = 1',
                 [self::id()]
             );
+            // Una sesión abierta antes de cambiar la contraseña deja de ser válida
+            if ($user && (int) $user['session_version'] === (int) Session::get('session_version', 0)) {
+                self::$user = $user;
+            }
         }
         return self::$user;
+    }
+
+    /** Cierra las demás sesiones del usuario tras cambiar su contraseña; conserva la actual si es la suya */
+    public static function invalidateSessions(int $userId): void
+    {
+        Database::query('UPDATE users SET session_version = session_version + 1 WHERE id = ?', [$userId]);
+        if (self::id() === $userId) {
+            Session::set('session_version', (int) Database::value('SELECT session_version FROM users WHERE id = ?', [$userId]));
+        }
+        self::$user = null;
     }
 
     public static function check(): bool
@@ -114,5 +129,19 @@ final class Auth
     public static function isAdmin(): bool
     {
         return (self::membership()['role'] ?? null) === 'admin';
+    }
+
+    /**
+     * Administrador de la primera empresa. Solo estos usuarios configuran lo que afecta a toda la
+     * instalación: quien controla el correo podría interceptar enlaces de usuarios de otras empresas.
+     */
+    public static function isInstallationAdmin(): bool
+    {
+        return self::id() !== null && (bool) Database::value(
+            "SELECT 1 FROM company_user
+              WHERE user_id = ? AND role = 'admin' AND is_active = 1
+                AND company_id = (SELECT MIN(id) FROM companies WHERE is_active = 1)",
+            [self::id()]
+        );
     }
 }

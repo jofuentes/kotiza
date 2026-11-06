@@ -9,6 +9,9 @@ use App\Core\LoginThrottle;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Domain\PasswordResets;
+use App\Mail\MailSettings;
+use App\Support\Validator;
 
 final class AuthController extends Controller
 {
@@ -17,7 +20,7 @@ final class AuthController extends Controller
 
     public function showLogin(Request $request): Response
     {
-        return $this->view('auth/login', ['email' => '', 'error' => null], 'layouts/guest');
+        return $this->loginView('', null);
     }
 
     public function login(Request $request): Response
@@ -26,7 +29,7 @@ final class AuthController extends Controller
         $password = (string) $request->input('password', '');
         $ip = $request->ip();
 
-        $fail = fn (string $msg) => $this->view('auth/login', ['email' => $email, 'error' => $msg], 'layouts/guest');
+        $fail = fn (string $msg) => $this->loginView($email, $msg);
 
         if ($email === '' || $password === '') {
             return $fail('Escribe tu correo y contraseña.');
@@ -70,5 +73,62 @@ final class AuthController extends Controller
     {
         Auth::logout();
         return $this->redirect('/login');
+    }
+
+    public function showForgot(Request $request): Response
+    {
+        if (!MailSettings::available()) {
+            return $this->redirect('/login');
+        }
+        return $this->view('auth/forgot-password', ['error' => null], 'layouts/guest');
+    }
+
+    public function forgot(Request $request): Response
+    {
+        if (!MailSettings::available()) {
+            return $this->redirect('/login');
+        }
+        $email = mb_strtolower($request->str('email'));
+        if (Validator::make(['email' => $email], ['email' => 'required|email'])->fails()) {
+            return $this->view('auth/forgot-password', ['error' => 'Escribe un correo válido.'], 'layouts/guest');
+        }
+        PasswordResets::request($email, $request->ip());
+        // El mismo mensaje exista o no el correo
+        Session::flash('success', 'Si ese correo tiene una cuenta activa, recibirás un enlace en unos minutos. Revisa también tu carpeta de spam.');
+        return $this->redirect('/login');
+    }
+
+    public function showReset(Request $request): Response
+    {
+        $token = $request->str('token');
+        return $this->view('auth/reset-password', [
+            'token' => $token, 'valid' => PasswordResets::isValid($token), 'errors' => [],
+        ], 'layouts/guest');
+    }
+
+    public function reset(Request $request): Response
+    {
+        $token = $request->str('token');
+        $data = $request->only(['password', 'password_confirmation']);
+        $errors = Validator::make($data, [
+            'password' => 'required|min:10|max:200', 'password_confirmation' => 'required|same:password',
+        ], ['password' => 'Contraseña nueva', 'password_confirmation' => 'Confirmar contraseña'])->errors();
+        if ($errors) {
+            return $this->view('auth/reset-password', [
+                'token' => $token, 'valid' => PasswordResets::isValid($token), 'errors' => $errors,
+            ], 'layouts/guest');
+        }
+        if (!PasswordResets::complete($token, (string) $data['password'])) {
+            return $this->view('auth/reset-password', ['token' => $token, 'valid' => false, 'errors' => []], 'layouts/guest');
+        }
+        Session::flash('success', 'Tu contraseña se actualizó. Ya puedes iniciar sesión.');
+        return $this->redirect('/login');
+    }
+
+    private function loginView(string $email, ?string $error): Response
+    {
+        return $this->view('auth/login', [
+            'email' => $email, 'error' => $error, 'canRecover' => MailSettings::available(),
+        ], 'layouts/guest');
     }
 }

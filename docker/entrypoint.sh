@@ -24,4 +24,12 @@ php bin/migrate.php --wait
     done
 ) &
 
+# Correos de recuperación de contraseña, cada 15 segundos
+(
+    while true; do
+        su -s /bin/sh www-data -c "php /var/www/app/bin/send-password-resets.php" || true
+        sleep 15
+    done
+) &
+
 exec "$@"

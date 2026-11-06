@@ -16,4 +16,11 @@
         </div>
         <button class="btn btn-primary w-full">Entrar</button>
     </form>
+    <p class="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+        <?php if ($canRecover): ?>
+            <a class="text-brand underline dark:text-sky-400" href="<?= e(url('/contrasena/olvide')) ?>">¿Olvidaste tu contraseña?</a>
+        <?php else: ?>
+            ¿Olvidaste tu contraseña? Pide ayuda a tu administrador.
+        <?php endif; ?>
+    </p>
 </div>

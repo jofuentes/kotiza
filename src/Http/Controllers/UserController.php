@@ -36,7 +36,7 @@ final class UserController extends Controller
            ORDER BY cu.is_active DESC, u.name',
             [Auth::companyId()]
         );
-        return $this->view('users/index', ['pageTitle' => 'Usuarios', 'users' => $users]);
+        return $this->view('users/index', ['pageTitle' => 'Usuarios', 'users' => $users, 'activeAdmins' => $this->activeAdmins()]);
     }
 
     public function create(Request $request): Response
@@ -179,6 +179,7 @@ final class UserController extends Controller
                 if (($data['password'] ?? '') !== '') {
                     Database::query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($data['password'], PASSWORD_DEFAULT), $member['id']]);
                     Database::query('DELETE FROM login_attempts WHERE email = ?', [$data['email']]);
+                    Auth::invalidateSessions((int) $member['id']);
                 }
             }
         });

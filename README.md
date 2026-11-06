@@ -28,7 +28,7 @@ Cotizar un proyecto suele significar abrir el portal de cada mayorista, copiar m
 | **Tu margen, sin calculadora** | Reglas por marca, categoría o producto. Usa el precio de lista sugerido o tu costo + porcentaje. |
 | **PDF con tu marca** | Tu logo u hoja membretada, condiciones, datos bancarios, firma y la cantidad con letra. |
 | **Control del equipo** | Aprobaciones del administrador, límites de descuento por vendedor y cotizaciones compartidas. |
-| **Tus datos, en tu servidor** | Se instala en tu propio equipo (Docker / ZimaOS). Nadie más ve tus costos ni tus clientes. |
+| **Tus datos, en tu servidor** | Se instala en tu propio servidor con Docker. Nadie más ve tus costos ni tus clientes. |
 
 ---
 
@@ -114,7 +114,7 @@ Tus credenciales de cada mayorista se guardan **cifradas** y nunca se vuelven a 
 
 ## Instalación
 
-Kotiza se instala en tu propio servidor con Docker: en una PC, un NAS o un equipo ZimaOS.
+Kotiza se instala en tu propio servidor con Docker. Recomendamos **Ubuntu Server LTS** con [Docker](https://docs.docker.com/engine/install/ubuntu/).
 
 ```bash
 git clone https://github.com/jofuentes/kotiza.git && cd kotiza
@@ -123,6 +123,12 @@ docker compose up -d --build
 ```
 
 Abre la URL y un asistente te guía para crear tu cuenta y tu empresa. Los requisitos, la configuración y los respaldos están en la [documentación técnica](docs/TECNICO.md).
+
+También puedes usar otros sistemas con Docker, como ZimaOS, TrueNAS SCALE u OpenMediaVault; la documentación técnica incluye [recomendaciones](docs/TECNICO.md#otros-sistemas-compatibles).
+
+## Manual
+
+El [manual de Kotiza](docs/MANUAL.md) explica paso a paso el uso diario para vendedores y la configuración para administradores.
 
 ## Contribuir
 

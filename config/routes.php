@@ -9,6 +9,7 @@ use App\Http\Controllers\CompanyContextController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\MailController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProviderController;
@@ -25,6 +26,10 @@ return function (Router $r): void {
     $r->group(['guest'], function (Router $r) {
         $r->get('/login', [AuthController::class, 'showLogin']);
         $r->post('/login', [AuthController::class, 'login']);
+        $r->get('/contrasena/olvide', [AuthController::class, 'showForgot']);
+        $r->post('/contrasena/olvide', [AuthController::class, 'forgot']);
+        $r->get('/contrasena/restablecer', [AuthController::class, 'showReset']);
+        $r->post('/contrasena/restablecer', [AuthController::class, 'reset']);
     });
     $r->post('/logout', [AuthController::class, 'logout'], ['auth.only']);
 
@@ -71,6 +76,12 @@ return function (Router $r): void {
         $r->get('/productos', [CatalogController::class, 'index']);
         $r->get('/productos/buscar', [CatalogController::class, 'search']);
         $r->get('/productos/{code:[a-z0-9_]+}/{id:[A-Za-z0-9_.-]+}', [CatalogController::class, 'show']);
+
+        // Correo de la instalación (solo administradores de la primera empresa)
+        $r->get('/correo', [MailController::class, 'edit']);
+        $r->post('/correo', [MailController::class, 'update']);
+        $r->post('/correo/probar', [MailController::class, 'test']);
+        $r->post('/correo/eliminar', [MailController::class, 'destroy']);
 
         // Solo administradores
         $r->group(['admin'], function (Router $r) {

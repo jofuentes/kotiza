@@ -66,6 +66,7 @@ final class ProfileController extends Controller
         Database::query('UPDATE users SET name = ?, email = ? WHERE id = ?', [$data['name'], $data['email'], $user['id']]);
         if ($changingPassword) {
             Database::query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($data['password'], PASSWORD_DEFAULT), $user['id']]);
+            Auth::invalidateSessions((int) $user['id']);
         }
 
         $membership = ['display_name' => $data['display_name'] ?: null];

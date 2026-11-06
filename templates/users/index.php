@@ -6,6 +6,12 @@
     <a href="<?= e(url('/usuarios/nuevo')) ?>" class="btn btn-primary">+ Nuevo usuario</a>
 </div>
 
+<?php if ($activeAdmins <= 1): ?>
+<div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+    <strong>Esta empresa solo tiene un administrador.</strong> Te recomendamos crear un segundo para no perder el control de la empresa si esa persona no está disponible o pierde su acceso.
+</div>
+<?php endif; ?>
+
 <div class="card overflow-hidden">
     <div class="overflow-x-auto">
     <table class="w-full text-left text-sm">
