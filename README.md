@@ -108,7 +108,7 @@ Define cómo vendes y Kotiza aplica la regla más específica a cada producto: *
 |---|---|
 | **Syscom** | ✅ Conectado: búsqueda inteligente, precios con tu nivel de distribuidor, existencias por almacén y tipo de cambio |
 | **TVC** | 🔧 En integración: catálogo sincronizado automáticamente |
-| ¿Otro? | Los conectores son modulares: agregar un mayorista nuevo es agregar un archivo |
+| ¿Otro? | Los conectores son modulares: [agrega tu mayorista](CONTRIBUTING.md#agregar-un-mayorista) y compártelo con la comunidad |
 
 Tus credenciales de cada mayorista se guardan **cifradas** y nunca se vuelven a mostrar.
 
@@ -123,6 +123,20 @@ docker compose up -d --build
 ```
 
 Abre la URL y un asistente te guía para crear tu cuenta y tu empresa. Los requisitos, la configuración y los respaldos están en la [documentación técnica](docs/TECNICO.md).
+
+## Contribuir
+
+Kotiza es software libre y gratuito. Puedes usarlo, modificarlo y tomarlo como punto de partida para tu propio proyecto. Lee la [guía para contribuir](CONTRIBUTING.md) si quieres enviar mejoras o conectores para otros mayoristas, y la [política de seguridad](SECURITY.md) para reportar vulnerabilidades.
+
+## Licencia
+
+Copyright © 2026 Jesus Oswaldo Espinosa Fuentes y colaboradores de Kotiza.
+
+Este programa es software libre: puedes redistribuirlo y modificarlo bajo los términos de la [Licencia Pública General de GNU](LICENSE), versión 2 o (a tu elección) cualquier versión posterior (`GPL-2.0-or-later`). Se distribuye **sin ninguna garantía**. Si distribuyes una versión modificada, debes ofrecer también su código fuente bajo esta misma licencia.
+
+Los PDF y demás documentos que generes con Kotiza son tuyos: la licencia cubre el programa, no tus cotizaciones.
+
+Kotiza no está afiliado a Syscom, TVC ni a las marcas que aparecen en este repositorio; sus nombres pertenecen a sus respectivos dueños. El uso de cada API se rige por las condiciones de su mayorista, y cada usuario necesita sus propias credenciales.
 
 ---
 
