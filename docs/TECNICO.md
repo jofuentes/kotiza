@@ -29,8 +29,8 @@ Aplicación web self-hosted para generar cotizaciones profesionales a partir del
 Requisitos: Docker con Compose.
 
 ```bash
-git clone https://github.com/jofuentes/cotizador.git
-cd cotizador
+git clone https://github.com/jofuentes/kotiza.git
+cd kotiza
 cp .env.example .env
 ```
 
@@ -58,7 +58,7 @@ ZimaOS ejecuta Docker, así que se instala igual que en local, desde una termina
 
 ```bash
 ssh usuario@IP-DE-ZIMA
-git clone https://github.com/jofuentes/cotizador.git /DATA/AppData/cotizador
+git clone https://github.com/jofuentes/kotiza.git /DATA/AppData/cotizador
 cd /DATA/AppData/cotizador
 cp .env.example .env && nano .env      # APP_URL=http://IP-DE-ZIMA:8080, APP_KEY, contraseñas
 docker compose up -d --build

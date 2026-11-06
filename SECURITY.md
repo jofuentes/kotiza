@@ -4,7 +4,7 @@ Kotiza guarda credenciales de mayoristas, costos y datos de clientes, así que l
 
 ## Cómo reportar una vulnerabilidad
 
-**No abras un issue público.** Usa [Report a vulnerability](https://github.com/jofuentes/cotizador/security/advisories/new) en la pestaña *Security* del repositorio. Si puedes, incluye:
+**No abras un issue público.** Usa [Report a vulnerability](https://github.com/jofuentes/kotiza/security/advisories/new) en la pestaña *Security* del repositorio. Si puedes, incluye:
 
 - la versión o el commit afectado;
 - los pasos para reproducirla;

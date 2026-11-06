@@ -117,7 +117,7 @@ Tus credenciales de cada mayorista se guardan **cifradas** y nunca se vuelven a 
 Kotiza se instala en tu propio servidor con Docker: en una PC, un NAS o un equipo ZimaOS.
 
 ```bash
-git clone https://github.com/jofuentes/cotizador.git kotiza && cd kotiza
+git clone https://github.com/jofuentes/kotiza.git && cd kotiza
 cp .env.example .env        # define la URL y genera la clave de cifrado
 docker compose up -d --build
 ```
