@@ -12,9 +12,9 @@
   Hecho para integradores de <b>videovigilancia, redes, control de acceso y telecomunicaciones</b> en México.
 </p>
 
-<p align="center">
-  <img src="docs/img/editor.png" alt="Editor de cotizaciones de Kotiza" width="900">
-</p>
+### Mira Kotiza en un minuto
+
+https://github.com/user-attachments/assets/78968473-eb7d-4e98-b80d-44032abfac00
 
 ---
 
